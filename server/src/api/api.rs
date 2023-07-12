@@ -20,13 +20,34 @@ pub async fn send_message(db: web::Data<Database>, message: web::Json<Message>) 
     }
 }
 
-#[get("/message")]
-pub async fn get_messages(db: web::Data<Database>, bearer: web::Json<LoginToken>) -> HttpResponse {
-    let messages = db.get_messages(bearer.token.clone());
-    match messages {
-        Ok(msgs) => HttpResponse::Ok().json(msgs),
-        Err(_) => HttpResponse::BadRequest().body("User not logged in")
-    }
+#[get("/message/{user_id}")]
+pub async fn get_messages(db: web::Data<Database>, path: web::Path<String>) -> HttpResponse {
+// pub async fn get_messages(db: web::Data<Database>, path: web::Path<String>, token: web::Data<LoginToken>) -> HttpResponse {
+    // let messages = db.get_messages_brief(bearer.token.clone());
+    let user_id = path.into_inner();
+
+    let messages = db.get_messages_brief(&user_id);
+    HttpResponse::Ok().json(messages)
+
+    // match db.valid_token(&token.token, &user_id) {
+    //     true  => HttpResponse::Ok().json(db.get_messages_brief(user_id)),
+    //     false => HttpResponse::BadRequest().body("User not logged in or bad token")
+    // }
+    
+}
+
+#[get("/message/{user_id}/{recipient_id}")]
+pub async fn get_conversation(db: web::Data<Database>, path: web::Path<(String, String)>) -> HttpResponse {
+// pub async fn get_conversation(db: web::Data<Database>, path: web::Path<(String, String)>, token: web::Data<LoginToken>) -> HttpResponse {
+    let (user_id, recipient_id) = path.into_inner();
+
+    let messages = db.get_conversation_messages(&user_id, &recipient_id);
+    HttpResponse::Ok().json(messages)
+
+    // match db.valid_token(&token.token, &user_id) {
+    //     true  => HttpResponse::Ok().json(db.get_conversation_messages(user_id, recipient_id)),
+    //     false => HttpResponse::BadRequest().body("User not logged in or bad token")
+    // }
 }
 
 pub fn config(config: &mut web::ServiceConfig) {
@@ -35,5 +56,6 @@ pub fn config(config: &mut web::ServiceConfig) {
             .service(authenticate)
             .service(send_message)
             .service(get_messages)
+            .service(get_conversation)
     );
 }
