@@ -26,19 +26,19 @@ impl Database {
         Database { user_list: u_list, msg_db: msg, token_map: map }
     }
 
-    pub fn create_account(&self, uname: String, pword: String) -> Result<(), ()> {
+    pub fn create_account(&self, uname: &str, pword: &str) -> Result<(), ()> {
         let mut users = self.user_list.lock().unwrap();
-        if users.contains_key(&uname) {
+        if users.contains_key(uname) {
             return Err(())
         }
 
-        users.insert(uname, pword);
+        users.insert(uname.to_string(), pword.to_string());
         Ok(())
     }
 
-    pub fn login(&self, uname: String, pword: String) -> Result<String, ()> {
+    pub fn login(&self, uname: &str, pword: &str) -> Result<String, ()> {
         let users = self.user_list.lock().unwrap();
-        let valid_credentials = match users.get(&uname) {
+        let valid_credentials = match users.get(uname) {
             Some(p) => p.eq(&pword),
             None    => false
         };
@@ -52,12 +52,12 @@ impl Database {
                 return Err(())
             }
         }
-        token_map.push((uname, token.clone()));
+        token_map.push((uname.to_string(), token.clone()));
         Ok(token)
 
     }
 
-    pub fn valid_token(&self, token: &Token, user_id: &String) -> bool {
+    pub fn valid_token(&self, token: &str, user_id: &str) -> bool {
         let live_users = self.token_map.lock().unwrap();
         for (uid, tok) in live_users.iter() {
             if uid.eq(user_id) && tok.eq(token) {
@@ -67,20 +67,20 @@ impl Database {
         false
     }
 
-    pub fn add_message(&self, to: String, from: String, content: String) -> Result<(), ()> {
+    pub fn add_message(&self, to: &str, from: &str, content: &str) -> Result<(), ()> {
         let mut msgs = self.msg_db.lock().unwrap();
         let msg = Message {
             message_id: Some(Uuid::new_v4().to_string()),
-            to: to,
-            from: from,
-            content: content,
+            to: to.to_string(),
+            from: from.to_string(),
+            content: content.to_string(),
             time: Some(Utc::now()),
         };
         msgs.push(msg);
         Ok(())
     }
 
-    pub fn get_messages_brief(&self, requester_id: &String) -> Vec<Message> {   
+    pub fn get_messages_brief(&self, requester_id: &str) -> Vec<Message> {   
         let msgs = self.msg_db.lock().unwrap();
         let result: Vec<Message> = msgs
             .iter()
@@ -91,7 +91,7 @@ impl Database {
         result
     }
 
-    pub fn get_conversation_messages(&self, requester_id: &String, other_id: &String) -> Vec<Message> {
+    pub fn get_conversation_messages(&self, requester_id: &str, other_id: &str) -> Vec<Message> {
         let msgs = self.msg_db.lock().unwrap();
         let result: Vec<Message> = msgs
             .iter()
