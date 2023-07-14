@@ -1,4 +1,3 @@
-// use chrono::Utc;
 use sqlx::{MySql, Pool};
 use sqlx::mysql::MySqlPoolOptions;
 use uuid::Uuid;
@@ -48,21 +47,25 @@ impl Database {
             Ok(qr) => qr.id,
             Err(_) => return Err(())
         };
-        // println!("Correct login details");
+        println!("Correct login details");
         let token = Uuid::new_v4().to_string();
+        let token_expiry = chrono::Utc::now() + chrono::Duration::hours(12);
         // Insert or update active token for the now logged in user
         let token_set = sqlx::query(
-            "INSERT INTO ActiveToken (account_id, token)
-            VALUES (?, ?)
-            ON DUPLICATE KEY
-            UPDATE token = ?;")
+            "INSERT INTO ActiveToken (account_id, token, expiration)
+            VALUES (?, ?, ?)
+            ON DUPLICATE KEY UPDATE
+            token = ?,
+            expiration = ?;")
             .bind(&id)
             .bind(&token)
+            .bind(&token_expiry)
             .bind(&token)
+            .bind(&token_expiry)
             .execute(&self.db_pool)
             .await;
 
-        // println!("{:?}", token_set);
+        println!("{:?}", token_set);
         match token_set {
             Ok(_)  => Ok(token),
             Err(_) => Err(())
@@ -73,7 +76,8 @@ impl Database {
         let result:Result<ActiveToken, _> = sqlx::query_as!(
             ActiveToken,
             r"SELECT * FROM ActiveToken
-            WHERE token = ?", token)
+            WHERE token = ?
+            AND expiration > NOW()", token)
             .fetch_one(&self.db_pool)
             .await;
 
@@ -142,4 +146,5 @@ struct AccountLogin {
 struct ActiveToken {
     account_id: String,
     token: String,
+    expiration: chrono::DateTime<chrono::Utc>
 }

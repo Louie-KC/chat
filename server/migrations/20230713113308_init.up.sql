@@ -24,6 +24,7 @@ CREATE TABLE IF NOT EXISTS Message (
     sender_id CHAR(37) NOT NULL,
     chat_id CHAR(37) NOT NULL,
     content TEXT NOT NULL,
+    -- time_sent DATETIME(3), -- 3 gives millisecond
     PRIMARY KEY (id),
     FOREIGN KEY (sender_id) REFERENCES Account(id),
     FOREIGN KEY (chat_id) REFERENCES Chat(id)
@@ -32,21 +33,22 @@ CREATE TABLE IF NOT EXISTS Message (
 CREATE TABLE IF NOT EXISTS ActiveToken (
     token CHAR(37) NOT NULL,
     account_id CHAR(37) NOT NULL,
-    PRIMARY KEY (token),
+    expiration TIMESTAMP NOT NULL,
+    PRIMARY KEY (account_id),
     FOREIGN KEY (account_id) REFERENCES Account(id)
 );
 
--- INSERT INTO Account (id, username, password)
--- VALUES ("0000000000000000000000000000000000000", "devtest", "12345");
 
--- INSERT INTO Account (id, username, password)
--- VALUES ("1234567890123456789012345678901234567", "test_user", "password");
+DROP PROCEDURE IF EXISTS delete_expired_tokens;
 
--- INSERT INTO Chat (id, name)
--- VALUES ("1111111111111111111111111111111111111", "test_chat");
+CREATE PROCEDURE delete_expired_tokens()
+BEGIN
+    DELETE FROM ActiveToken WHERE expiration <= NOW();
+END ;
 
--- INSERT INTO ChatParticipant (chat_id, account_id)
--- VALUES ("1111111111111111111111111111111111111", "0000000000000000000000000000000000000");
+DROP EVENT IF EXISTS minutely_token_cleanup;
 
--- INSERT INTO ChatParticipant (chat_id, account_id)
--- VALUES ("1111111111111111111111111111111111111", "1234567890123456789012345678901234567");
+CREATE EVENT minutely_token_cleanup
+    ON SCHEDULE EVERY 1 MINUTE
+    DO
+        CALL delete_expired_tokens();

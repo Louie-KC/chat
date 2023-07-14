@@ -29,36 +29,16 @@ pub async fn authenticate(db: web::Data<Database>, login_details: web::Json<Logi
     }
 }
 
-// #[post("/message/{user_id}")]
-// pub async fn send_message(
-//     db: web::Data<Database>,
-//     body: web::Json<Message>,
-//     path: web::Path<String>,
-//     auth: BearerAuth
-// ) -> HttpResponse {
-//     let uid= path.into_inner();
-//     let token = auth.token();
-//     if !db.valid_token(&token, &uid).await {
-//         return HttpResponse::Unauthorized().body("Invalid user id and token combination")
-//     }
-//     let status = db.add_message(&body.to, &body.from, &body.content).await;
-//     match status {
-//         Ok(_)  => HttpResponse::Ok().json(json!({"status": "Success"})),
-//         Err(_) => HttpResponse::InternalServerError().body("Sending failure")
-//     }
-// }
-
 #[post("/message")]
 pub async fn send_message(
     db: web::Data<Database>,
     body: web::Json<Message>,
     auth: BearerAuth
 ) -> HttpResponse {
-    // let uid= path.into_inner();
     let token = auth.token();
     let uid = match db.token_to_uid(&token).await {
         Ok(id) => id,
-        Err(_) => return HttpResponse::Unauthorized().body("Invalid token")
+        Err(_) => return HttpResponse::Unauthorized().body("Invalid or expired token")
     };
     // println!("calling add_message: {}, {}, {}", &body.chat_id, &uid, &body.content);
     let status = db.add_message(&body.chat_id, &uid, &body.content).await;
@@ -79,7 +59,7 @@ pub async fn get_messages(
     }
 }
 
-#[get("/message")]
+#[get("/conversation")]
 pub async fn get_conversation(
     db: web::Data<Database>,
     body: web::Json<MessageRequest>,
