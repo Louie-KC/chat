@@ -3,12 +3,15 @@ mod models;
 mod database;
 
 use actix_web::{web, App, HttpServer};
+use dotenv::dotenv;
 
 use crate::database::database::Database;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    let db = Database::new();
+    dotenv().ok();
+    let db_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+    let db = Database::new(db_url.as_str()).await;
     let data = web::Data::new(db);
 
     let server_address = "127.0.0.1";
