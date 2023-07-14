@@ -51,10 +51,12 @@ pub async fn send_message(
 #[get("/message")]
 pub async fn get_messages(
     db: web::Data<Database>,
+    body: web::Json<MessageRequest>,
     auth: BearerAuth
 ) -> HttpResponse {
+    let from = body.from_time;
     match db.token_to_uid(auth.token()).await {
-        Ok(uid) => HttpResponse::Ok().json(db.get_messages(&uid).await),
+        Ok(uid) => HttpResponse::Ok().json(db.get_messages(&uid, from).await.unwrap()),
         Err(_) => return HttpResponse::Unauthorized().body("User not logged in or bad token")
     }
 }
@@ -64,9 +66,14 @@ pub async fn get_conversation(
     db: web::Data<Database>,
     body: web::Json<MessageRequest>,
     auth: BearerAuth
-) -> HttpResponse {
+) -> HttpResponse { 
+    let cid = match &body.chat_id {
+        Some(id) => id,
+        None     => return HttpResponse::BadRequest().body("Missing chat_id field")
+    };
+    let from = body.from_time;
     match db.token_to_uid(auth.token()).await {
-        Ok(uid) => HttpResponse::Ok().json(db.get_conversation_messages(&uid, &body.chat_id).await),
+        Ok(uid) => HttpResponse::Ok().json(db.get_conversation_messages(&uid, &cid, from).await),
         Err(_) => HttpResponse::Unauthorized().body("User not logged in or bad token")
     }
 }

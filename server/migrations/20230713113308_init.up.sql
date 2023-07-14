@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS Message (
     sender_id CHAR(37) NOT NULL,
     chat_id CHAR(37) NOT NULL,
     content TEXT NOT NULL,
-    -- time_sent DATETIME(3), -- 3 gives millisecond
+    time_sent DATETIME(3) NOT NULL, -- (3) gives millisecond
     PRIMARY KEY (id),
     FOREIGN KEY (sender_id) REFERENCES Account(id),
     FOREIGN KEY (chat_id) REFERENCES Chat(id)

@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 use sqlx::{MySql, Pool};
 use sqlx::mysql::MySqlPoolOptions;
 use uuid::Uuid;
@@ -13,7 +14,6 @@ impl Database {
             Ok(pool) => pool,
             Err(_) => panic!("Could not connect to database")
         };
-        
         Database { db_pool: pool }
     }
 
@@ -89,12 +89,13 @@ impl Database {
 
     pub async fn add_message(&self, chat_id: &str, sender_id: &str, content: &str) -> Result<(), ()> {
         let result = sqlx::query(
-            "INSERT INTO Message (id, sender_id, chat_id, content)
-            VALUES (?, ?, ?, ?)")
+            "INSERT INTO Message (id, sender_id, chat_id, content, time_sent)
+            VALUES (?, ?, ?, ?, ?)")
             .bind(Uuid::new_v4().to_string())
             .bind(&sender_id)
             .bind(&chat_id)
             .bind(&content)
+            .bind(chrono::Utc::now())
             .execute(&self.db_pool)
             .await;
 
@@ -105,14 +106,20 @@ impl Database {
         }
     }
 
-    pub async fn get_messages(&self, requester_id: &str) -> Result<Vec<MessageResponse>, ()> {
+    pub async fn get_messages(
+        &self,
+        requester_id: &str,
+        from: DateTime<Utc>
+    ) -> Result<Vec<MessageResponse>, ()> {
         let result: Result<Vec<MessageResponse>, _> = sqlx::query_as!(
             MessageResponse,
             r"SELECT * FROM Message
             WHERE chat_id IN (
                 SELECT DISTINCT chat_id FROM ChatParticipant
                 WHERE account_id = ?
-            )", requester_id)
+            )
+            AND time_sent >= ?
+            ORDER BY time_sent DESC", requester_id, from)
             .fetch_all(&self.db_pool)
             .await;
 
@@ -122,7 +129,12 @@ impl Database {
         }
     }
 
-    pub async fn get_conversation_messages(&self, requester_id: &str, chat_id: &str) -> Vec<MessageResponse> {
+    pub async fn get_conversation_messages(
+        &self,
+        requester_id: &str,
+        chat_id: &str,
+        from: DateTime<Utc>
+    ) -> Vec<MessageResponse> {
         let result: Vec<MessageResponse> = sqlx::query_as!(
             MessageResponse,
             r"SELECT * FROM Message
@@ -130,7 +142,9 @@ impl Database {
             AND ? IN (
                 SELECT account_id FROM ChatParticipant
                 WHERE chat_id = ?
-            )", &chat_id, requester_id, chat_id)
+            )
+            AND time_sent >= ?
+            ORDER BY time_sent DESC", &chat_id, requester_id, chat_id, from)
             .fetch_all(&self.db_pool)
             .await
             .unwrap();
