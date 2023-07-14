@@ -17,6 +17,13 @@ impl Database {
         Database { db_pool: pool }
     }
 
+    /// Create or register an account in the database. Generates and assigns a
+    /// unique user ID for the new account. Returns Ok on success, and Error if
+    /// the provided username is already taken.
+    /// 
+    /// ## Arguments
+    /// * 'uname' - The users desired username
+    /// * 'pword' - The users desired password
     pub async fn create_account(&self, uname: &str, pword: &str) -> Result<(), ()> {
         // Check if username is free
         let username_query = sqlx::query!(
@@ -46,6 +53,14 @@ impl Database {
         }
     }
 
+    /// Attempts to login a user with the provided username and password.
+    /// Generates a login token and inserts/updates the token into the database
+    /// with an expiry time 12 hours from login time. Returns the token
+    /// upon success. Returns and error on invalid login details.
+    /// 
+    /// ## Arguments
+    /// * 'uname' - Username to use for login
+    /// * 'pword' - Password to use for login
     pub async fn login(&self, uname: &str, pword: &str) -> Result<String, ()> {
         let query_result: Result<AccountLogin, _> = sqlx::query_as!(
             AccountLogin,
@@ -84,6 +99,12 @@ impl Database {
         }
     }
 
+    /// Converts a login token and returns the tokens assigned user id.
+    /// An error is returned if the provided token is invalid (e.g. not mapped
+    /// to a user id or expired).
+    /// 
+    /// ## Arguments
+    /// * `token` -> The token to be converted to user/account id
     pub async fn token_to_uid(&self, token: &str) -> Result<String, ()> {
         let result:Result<ActiveToken, _> = sqlx::query_as!(
             ActiveToken,
@@ -99,7 +120,19 @@ impl Database {
         }
     }
 
-    pub async fn add_message(&self, chat_id: &str, sender_id: &str, content: &str) -> Result<(), ()> {
+    /// Adds a message to the the specified chat with the provided contents.
+    /// Returns Ok if successful, and an error if sending failed.
+    /// 
+    /// ## Arguments
+    /// * `chat_id` - an identifier specifying the chat
+    /// * `sender_id` - an identifier specifying the senders account
+    /// * `content` - The content (text) of the message being sent.
+    pub async fn add_message(
+        &self,
+        chat_id: &str,
+        sender_id: &str,
+        content: &str
+    ) -> Result<(), ()> {
         let result = sqlx::query(
             "INSERT INTO Message (id, sender_id, chat_id, content, time_sent)
             VALUES (?, ?, ?, ?, ?)")
@@ -118,6 +151,11 @@ impl Database {
         }
     }
 
+    /// Retrieves all messages for a user that were sent after a specified time.
+    /// 
+    /// ## Arguments
+    /// * `requester_id` - The requesting users account ID
+    /// * `from` - An ISO 8601 time
     pub async fn get_messages(
         &self,
         requester_id: &str,
@@ -141,6 +179,13 @@ impl Database {
         }
     }
 
+    /// Retrieves messages from a conversation for a user that were sent after a
+    /// specified time.
+    /// 
+    /// ## Arguments
+    /// * `requester_id` - The requesting users account ID
+    /// * `chat_id` - An identifier specifying the chat
+    /// * `from` - An ISO 8601 time
     pub async fn get_conversation_messages(
         &self,
         requester_id: &str,
