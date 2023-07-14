@@ -18,6 +18,18 @@ impl Database {
     }
 
     pub async fn create_account(&self, uname: &str, pword: &str) -> Result<(), ()> {
+        // Check if username is free
+        let username_query = sqlx::query!(
+            r"SELECT * FROM Account
+            WHERE username = ?
+            LIMIT 1", &uname)
+            .fetch_one(&self.db_pool)
+            .await;
+        if let Ok(_) = username_query {
+            return Err(())  // username not free
+        }
+
+        // Register
         let user_id = uuid::Uuid::new_v4().to_string();
         let query_result = sqlx::query(
             r"INSERT INTO Account (id, username, password)
