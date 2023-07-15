@@ -14,7 +14,7 @@ async fn main() -> std::io::Result<()> {
     let db = Database::new(db_url.as_str()).await;
     let data = web::Data::new(db);
 
-    let server_address = "127.0.0.1";
+    let server_address = "0.0.0.0";  // 0.0.0.0 Allows for devices on LAN to find server
     let server_port = 8080;
     let app = HttpServer::new(move || {
         App::new()

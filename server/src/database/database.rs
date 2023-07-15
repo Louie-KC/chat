@@ -159,7 +159,7 @@ impl Database {
     pub async fn get_messages(
         &self,
         requester_id: &str,
-        from: DateTime<Utc>
+        from: DateTime<Utc> 
     ) -> Result<Vec<MessageResponse>, ()> {
         let result: Result<Vec<MessageResponse>, _> = sqlx::query_as!(
             MessageResponse,
