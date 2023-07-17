@@ -79,10 +79,11 @@ pub async fn authenticate(db: web::Data<Database>, login_details: web::Json<Logi
     }
 }
 
-#[post("/message")]
+#[post("/message/{chat_id}")]
 pub async fn send_message(
     db: web::Data<Database>,
-    body: web::Json<Message>,
+    path: web::Path<String>,
+    body: web::Json<NewMessage>,
     auth: BearerAuth
 ) -> HttpResponse {
     let token = auth.token();
@@ -90,7 +91,8 @@ pub async fn send_message(
         Ok(id) => id,
         Err(_) => return HttpResponse::Unauthorized().json(json!({"reason": "Invalid or expired token"}))
     };
-    let status = db.add_message(&body.chat_id, &uid, &body.content).await;
+    let chat_id = path.to_owned();
+    let status = db.add_message(&chat_id, &uid, &body.content).await;
     match status {
         Ok(_)  => HttpResponse::Ok().json(json!({"status": "Success"})),
         Err(_) => HttpResponse::InternalServerError().json(json!({"reason": "Sending failure"}))
@@ -110,16 +112,14 @@ pub async fn get_messages(
     }
 }
 
-#[get("/conversation")]
-pub async fn get_conversation(
+#[get("/message/{chat_id}")]
+pub async fn get_conversation_conversation(
     db: web::Data<Database>,
+    path: web::Path<String>,
     body: web::Json<MessageRequest>,
     auth: BearerAuth
-) -> HttpResponse { 
-    let cid = match &body.chat_id {
-        Some(id) => id,
-        None     => return HttpResponse::BadRequest().json(json!({"reason": "Missing chat_id"}))
-    };
+) -> HttpResponse {
+    let cid = path.to_owned();
     let from = body.from_time;
     match db.token_to_uid(auth.token()).await {
         Ok(uid) => HttpResponse::Ok().json(db.get_conversation_messages(&uid, &cid, from).await),
@@ -135,6 +135,6 @@ pub fn config(config: &mut web::ServiceConfig) {
             .service(authenticate)
             .service(send_message)
             .service(get_messages)
-            .service(get_conversation)
+            .service(get_conversation_conversation)
     );
 }

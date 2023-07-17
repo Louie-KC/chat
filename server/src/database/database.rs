@@ -155,21 +155,27 @@ impl Database {
     /// 
     /// ## Arguments
     /// * `requester_id` - The requesting users account ID
-    /// * `from` - An ISO 8601 time
+    /// * `from_time` - An ISO 8601 time
     pub async fn get_messages(
         &self,
         requester_id: &str,
-        from: DateTime<Utc> 
+        from_time: DateTime<Utc> 
     ) -> Result<Vec<MessageResponse>, ()> {
         let result: Result<Vec<MessageResponse>, _> = sqlx::query_as!(
             MessageResponse,
-            r"SELECT * FROM Message
-            WHERE chat_id IN (
-                SELECT DISTINCT chat_id FROM ChatParticipant
-                WHERE account_id = ?
-            )
-            AND time_sent >= ?
-            ORDER BY time_sent DESC", requester_id, from)
+            r"SELECT id, sender_id, chat_id, content, time_sent FROM (
+                SELECT *, ROW_NUMBER() OVER(
+                    PARTITION BY chat_id
+                    ORDER BY time_sent DESC
+                ) row_num
+                FROM Message
+                WHERE chat_id IN (
+                    SELECT DISTINCT chat_id FROM ChatParticipant
+                    WHERE account_id = ?
+                )
+            ) sub
+            WHERE row_num = 1
+            AND time_sent > ?", requester_id, from_time)
             .fetch_all(&self.db_pool)
             .await;
 
@@ -185,12 +191,12 @@ impl Database {
     /// ## Arguments
     /// * `requester_id` - The requesting users account ID
     /// * `chat_id` - An identifier specifying the chat
-    /// * `from` - An ISO 8601 time
+    /// * `from_time` - An ISO 8601 time
     pub async fn get_conversation_messages(
         &self,
         requester_id: &str,
         chat_id: &str,
-        from: DateTime<Utc>
+        from_time: DateTime<Utc>
     ) -> Vec<MessageResponse> {
         let result: Vec<MessageResponse> = sqlx::query_as!(
             MessageResponse,
@@ -201,7 +207,7 @@ impl Database {
                 WHERE chat_id = ?
             )
             AND time_sent >= ?
-            ORDER BY time_sent DESC", &chat_id, requester_id, chat_id, from)
+            ORDER BY time_sent DESC", &chat_id, requester_id, chat_id, from_time)
             .fetch_all(&self.db_pool)
             .await
             .unwrap();
