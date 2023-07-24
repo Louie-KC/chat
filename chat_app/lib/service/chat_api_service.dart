@@ -3,10 +3,16 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 
+import '../models/message.dart';
+
 class ChatApi {
   static final ChatApi _instance = ChatApi._();
   static const String _baseUrl = "http://192.168.1.8:8080/api";
   static final _jsonHeader = {"Content-Type": "application/json"};
+  static final _tokenJsonHeader = {
+    "Authorization": "",
+    "Content-Type": "application/json"
+  };
   String _token = "";
 
   ChatApi._();
@@ -63,7 +69,51 @@ class ChatApi {
     }
   }
 
-  // TODO: post /message
+  Future<String> sendMessage(String chatID, String messageContent) async {
+    debugPrint("sendMessage called");
+
+    final Uri url = Uri.parse("$_baseUrl/message/$chatID");
+    _tokenJsonHeader["Authorization"] = "Bearer $_token";
+    Map<String, String> body = {"content": messageContent};
+    final response =
+        await http.post(url, headers: _tokenJsonHeader, body: jsonEncode(body));
+
+    if (response.statusCode == 200) {
+      debugPrint("sendMessage success");
+      return "Success";
+    } else {
+      return jsonDecode(response.body)["status"];
+    }
+  }
+
+  Future<List<Message>> getChatMessages(String chatID, DateTime since) async {
+    debugPrint("getMessages called");
+
+    final Uri url = Uri.parse("$_baseUrl/message/$chatID");
+    _tokenJsonHeader["Authorization"] = "Bearer $_token";
+    Map<String, String> body = {
+      "from_time": "${since.toIso8601String().split(".")[0]}Z"
+    };
+    var request = http.Request("GET", url);
+    request.headers.addAll(_tokenJsonHeader);
+    request.body = jsonEncode(body);
+    final response = await request.send();
+
+    if (response.statusCode == 200) {
+      debugPrint("getChatMessages Success");
+      Iterable messages = json.decode(await response.stream.bytesToString());
+      List<Message> result =
+          List.from(messages.map((msg) => Message.fromJson(msg)));
+      for (var msg in result) {
+        debugPrint("$msg");
+      }
+      return result;
+    } else {
+      debugPrint("getChatMessages failed");
+      debugPrint("${response.statusCode}");
+      return List.empty(growable: false);
+    }
+  }
+
   // TODO: get /message
-  // TODO: get /conversation
 }
