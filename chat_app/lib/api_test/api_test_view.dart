@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import 'package:chat_app/service/chat_api_service.dart';
 
 class ApiTestView extends StatefulWidget {
@@ -13,24 +14,47 @@ class _ApiTestView extends State<ApiTestView> {
 
   ChatApi api = ChatApi();
 
+  final _usernameController = TextEditingController();
+  final _passwordController = TextEditingController();
+
   void healthCheck() async {
     lastResponse = await api.healthCheck();
     debugPrint(lastResponse);
     setState(() {});
   }
 
-  void createAccount() async {
-    lastResponse = await api.createAccount("createtest", "eee");
+  void createAccount(String username, String password) async {
+    lastResponse = await api.createAccount(username, password);
     debugPrint(lastResponse);
     setState(() {});
   }
 
-  void login() async {
-    lastResponse = await api.login("createtest", "eee");
+  void login(String username, String password) async {
+    lastResponse = await api.login(username, password);
     debugPrint(lastResponse);
     setState(() {});
     debugPrint("API has token: ${api.hasToken()}");
   }
+
+  TextField _textField(
+    String label,
+    bool obscure,
+    TextEditingController controller,
+  ) =>
+      TextField(
+        controller: controller,
+        cursorColor: Colors.black,
+        obscureText: obscure,
+        autocorrect: false,
+        enableSuggestions: false,
+        decoration: InputDecoration(labelText: label),
+      );
+
+  ElevatedButton _button(
+    String text,
+    void Function() function,
+  ) =>
+      ElevatedButton(onPressed: function, child: Text(text));
 
   @override
   Scaffold build(BuildContext context) {
@@ -50,13 +74,21 @@ class _ApiTestView extends State<ApiTestView> {
                 onPressed: healthCheck,
                 child: const Text("health check"),
               ),
-              ElevatedButton(
-                onPressed: createAccount,
-                child: const Text("create account"),
+              _textField("username", false, _usernameController),
+              _textField("password", true, _passwordController),
+              _button(
+                "create account",
+                () => createAccount(
+                  _usernameController.text,
+                  _passwordController.text,
+                ),
               ),
-              ElevatedButton(
-                onPressed: login,
-                child: const Text("login"),
+              _button(
+                "login",
+                () => login(
+                  _usernameController.text,
+                  _passwordController.text,
+                ),
               ),
             ],
           ),
