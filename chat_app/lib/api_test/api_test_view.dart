@@ -11,6 +11,7 @@ class ApiTestView extends StatefulWidget {
 
 class _ApiTestView extends State<ApiTestView> {
   String lastResponse = "";
+  String _token = "";
 
   ChatApi api = ChatApi();
 
@@ -34,20 +35,33 @@ class _ApiTestView extends State<ApiTestView> {
   }
 
   void login(String username, String password) async {
-    lastResponse = await api.login(username, password);
+    // lastResponse = await api.login(username, password);
+    _token = await api.login(username, password);
+    if (_token.isEmpty) {
+      lastResponse = "Success";
+    } else {
+      lastResponse = "Failed";
+    }
     debugPrint(lastResponse);
     setState(() {});
-    debugPrint("API has token: ${api.hasToken()}");
+    // debugPrint("API has token: ${api.hasToken()}");
   }
 
   void sendMessage(String chatID, String message) async {
-    lastResponse = await api.sendMessage(chatID, message);
+    // lastResponse = await api.sendMessage(chatID, message);
+    int status = await api.sendMessage(chatID, message, _token);
+    if (status == 200) {
+      lastResponse = "Success";
+    }
     setState(() {});
   }
 
   void getChatMessages(String chatID) async {
     await api.getChatMessages(
-        chatID, DateTime.now().subtract(const Duration(days: 365)));
+      chatID,
+      DateTime.now().subtract(const Duration(days: 365)),
+      _token,
+    );
     setState(() {});
   }
 

@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:chat_app/api_test/api_test_view.dart';
+import 'package:provider/provider.dart';
+import 'package:chat_app/view/pages/login_page.dart';
+import 'package:chat_app/controllers/chat_controller.dart';
+// import 'package:chat_app/api_test/api_test_view.dart';
 
 void main() {
   runApp(const MainApp());
@@ -10,8 +13,11 @@ class MainApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      home: ApiTestView(),
+    return ChangeNotifierProvider(
+      create: (_) => ChatController(),
+      child: MaterialApp(
+        home: LoginPage(),
+      ),
     );
   }
 }

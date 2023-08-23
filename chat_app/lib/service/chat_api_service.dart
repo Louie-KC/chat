@@ -13,14 +13,14 @@ class ChatApi {
     "Authorization": "",
     "Content-Type": "application/json"
   };
-  String _token = "";
+  // String _token = "";
 
   ChatApi._();
   factory ChatApi() => _instance;
 
-  bool hasToken() => _token.isNotEmpty;
+  // bool hasToken() => _token.isNotEmpty;
 
-  void clearToken() => _token = "";
+  // void clearToken() => _token = "";
 
   Future<String> healthCheck() async {
     debugPrint("Health check called");
@@ -61,36 +61,42 @@ class ChatApi {
         await http.post(url, headers: _jsonHeader, body: jsonEncode(body));
 
     if (response.statusCode == 200) {
-      _token = jsonDecode(response.body)["token"];
-      debugPrint("token: $_token");
-      return "Success";
+      String token = jsonDecode(response.body)["token"];
+      debugPrint("token: $token");
+      return token;
     } else {
-      return "Incorrect login credentials";
+      return "";
     }
   }
 
-  Future<String> sendMessage(String chatID, String messageContent) async {
+  Future<int> sendMessage(
+    String chatID,
+    String messageContent,
+    String token,
+  ) async {
     debugPrint("sendMessage called");
 
     final Uri url = Uri.parse("$_baseUrl/message/$chatID");
-    _tokenJsonHeader["Authorization"] = "Bearer $_token";
+    _tokenJsonHeader["Authorization"] = "Bearer $token";
     Map<String, String> body = {"content": messageContent};
     final response =
         await http.post(url, headers: _tokenJsonHeader, body: jsonEncode(body));
 
     if (response.statusCode == 200) {
       debugPrint("sendMessage success");
-      return "Success";
-    } else {
-      return jsonDecode(response.body)["status"];
     }
+    return response.statusCode;
   }
 
-  Future<List<Message>> getChatMessages(String chatID, DateTime since) async {
+  Future<List<Message>> getChatMessages(
+    String chatID,
+    DateTime since,
+    String token,
+  ) async {
     debugPrint("getMessages called");
 
     final Uri url = Uri.parse("$_baseUrl/message/$chatID");
-    _tokenJsonHeader["Authorization"] = "Bearer $_token";
+    _tokenJsonHeader["Authorization"] = "Bearer $token";
     Map<String, String> body = {
       "from_time": "${since.toIso8601String().split(".")[0]}Z"
     };
