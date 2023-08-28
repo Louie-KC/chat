@@ -11,6 +11,8 @@ class ChatController extends ChangeNotifier {
   String _token = "";
   bool accountProcess = false;
   List<Chat> chats = List.empty();
+  List<Chat> displayChats = List.empty();
+  TextEditingController searchCtrl = TextEditingController(text: "");
 
   bool loggedIn() => _token.isNotEmpty;
 
@@ -80,8 +82,21 @@ class ChatController extends ChangeNotifier {
     devTestData.sort((a, b) =>
         b.lastMessage.getTimeSent().compareTo(a.lastMessage.getTimeSent()));
     chats = devTestData;
+    displayChats = chats;
 
     notifyListeners();
     return;
   }
+
+  void updateDisplayedChats(String searchText) {
+    displayChats = List.from(
+        chats.where((ch) =>
+            ch.chatName.contains(searchText) ||
+            ch.lastSender.contains(searchText) ||
+            ch.lastMessage.getContent().contains(searchText)),
+        growable: false);
+    notifyListeners();
+  }
+
+  List<Chat> getDisplayedChats() => displayChats;
 }

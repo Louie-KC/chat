@@ -10,27 +10,69 @@ class HomePage extends StatelessWidget {
     // _searchFieldController = TextEditingController();
   }
 
-  Widget chatButton(Chat chat) {
+  Widget _chatButton(ChatController controller, Chat chat) {
     String lastMsg = chat.lastMessage.getContent();
     if (lastMsg.length > 25) {
       lastMsg = "${lastMsg.substring(0, 22)}...";
     }
     DateTime timestamp = chat.lastMessage.getTimeSent();
     String sender = chat.lastSender;
-    return Padding(
-      padding: const EdgeInsets.all(4),
-      child: ElevatedButton(
-        onPressed: () => {},
-        child: Column(
+    String chatName = chat.chatName;
+
+    return InkWell(
+      onTap: () {
+        debugPrint("Chat Button Pushed"); // TODO
+      },
+      child: Container(
+        height: 96,
+        decoration: const BoxDecoration(
+          color: Colors.black26,
+          shape: BoxShape.rectangle,
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.start,
           children: [
-            Text(sender),
-            Text(lastMsg),
-            Text(timestamp.toString()),
+            Container(
+              width: 64 + 16,
+              margin: const EdgeInsets.symmetric(horizontal: 8),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+              ),
+            ),
+            Column(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  chatName,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+                Text(timestamp.toString()),
+                Text(sender),
+                Text(lastMsg),
+              ],
+            ),
           ],
         ),
       ),
     );
   }
+
+  Widget _searchBar(ChatController chatController) => TextField(
+        // controller: chatController.searchCtrl,
+        decoration: InputDecoration(
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
+          hintText: "Search chats",
+        ),
+        onChanged: (searchText) =>
+            chatController.updateDisplayedChats(searchText),
+      );
 
   @override
   Widget build(BuildContext context) {
@@ -40,31 +82,45 @@ class HomePage extends StatelessWidget {
       appBar: AppBar(
         elevation: 0,
         backgroundColor: Colors.white,
-        title: const Text("Home"),
+        title: const Text(
+          "Home",
+          style: TextStyle(color: Colors.black),
+        ),
+        centerTitle: true,
         automaticallyImplyLeading: false,
-        // leading: ,
       ),
-      body: Column(
-        mainAxisAlignment: MainAxisAlignment.start,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Container(
-            height: 150,
-            decoration: const BoxDecoration(
-              color: Colors.grey,
-              shape: BoxShape.rectangle,
+      body: SingleChildScrollView(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Container(
+              height: 150,
+              decoration: const BoxDecoration(
+                color: Colors.grey,
+                shape: BoxShape.rectangle,
+              ),
             ),
-          ),
-          ElevatedButton(
-            onPressed: () => controller.getChats(),
-            child: const Text("get chats"),
-          ),
-          Column(
-            children: controller.chats.map((chat) => chatButton(chat)).toList(),
-            // .map((chat) => Text(chat.lastMessage.getContent()))
-            // .toList(),
-          )
-        ],
+            Padding(
+              padding: const EdgeInsets.all(4.0),
+              child: _searchBar(controller),
+            ),
+            ElevatedButton(
+              onPressed: () => controller.getChats(),
+              child: const Text("get chats"),
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: controller
+                  .getDisplayedChats()
+                  .map((chat) => Padding(
+                        padding: const EdgeInsets.all(4.0),
+                        child: _chatButton(controller, chat),
+                      ))
+                  .toList(),
+            )
+          ],
+        ),
       ),
     );
   }
