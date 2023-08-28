@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 
 import '../models/message.dart';
+import '../models/chat.dart';
 
 class ChatApi {
   static final ChatApi _instance = ChatApi._();
@@ -122,4 +123,30 @@ class ChatApi {
   }
 
   // TODO: get /message
+  Future<List<Chat>> getChatOverview(DateTime since, String token) async {
+    debugPrint("getChatOverview called");
+
+    final Uri url = Uri.parse("$_baseUrl/message");
+    _tokenJsonHeader["Authorization"] = "Bearer $token";
+    Map<String, String> body = {
+      "from_time": "${since.toIso8601String().split(".")[0]}Z"
+    };
+    var request = http.Request("GET", url);
+    request.headers.addAll(_tokenJsonHeader);
+    request.body = jsonEncode(body);
+    final response = await request.send();
+
+    if (response.statusCode == 200) {
+      // We will receive messages newer than the `from` time,
+      // and only the top message from each Chat. Blindly make each
+      // chat from each message
+      Iterable messages = json.decode(await response.stream.bytesToString());
+      return List.from(
+        messages.map((msg) => Chat.previewOne(msg)),
+        growable: false,
+      );
+    } else {
+      return List.empty(growable: false);
+    }
+  }
 }
