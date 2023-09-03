@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:chat_app/view/common/header.dart';
 import 'package:chat_app/models/chat.dart';
 import 'package:chat_app/controllers/chat_controller.dart';
 
@@ -79,16 +80,7 @@ class HomePage extends StatelessWidget {
     final ChatController controller = Provider.of<ChatController>(context);
 
     return Scaffold(
-      appBar: AppBar(
-        elevation: 0,
-        backgroundColor: Colors.white,
-        title: const Text(
-          "Home",
-          style: TextStyle(color: Colors.black),
-        ),
-        centerTitle: true,
-        automaticallyImplyLeading: false,
-      ),
+      appBar: const Header(title: "Home", showBack: false),
       body: SingleChildScrollView(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.start,
