@@ -12,6 +12,13 @@ class ChatController extends ChangeNotifier {
   bool accountProcess = false;
   List<Chat> chats = List.empty();
   List<Chat> displayChats = List.empty();
+  Chat activeChat = Chat.previewOne(Message.fromJson({
+    "id": "",
+    "sender_id": "",
+    "chat_id": "",
+    "content": "",
+    "time_sent": DateTime.now().toIso8601String(),
+  }));
   TextEditingController searchCtrl = TextEditingController(text: "");
 
   bool loggedIn() => _token.isNotEmpty;
@@ -99,4 +106,67 @@ class ChatController extends ChangeNotifier {
   }
 
   List<Chat> getDisplayedChats() => displayChats;
+
+  Future<void> retrieveChatMessages(String chatID) async {
+    // DateTime since = displayMessages.isEmpty
+    //     ? DateTime(1)
+    //     : displayMessages.first.getTimeSent();
+    // displayMessages = await api.getChatMessages(chatID, since, _token);
+
+    debugPrint("!!! ChatController::retrieveChatMessages() DEV TEST DATA !!!");
+    Message m1 = Message.fromJson({
+      "id": "0",
+      "sender_id": "0",
+      "chat_id": "0",
+      "content": "test message 1",
+      "time_sent": "${DateTime.now().subtract(const Duration(days: 10))}"
+    });
+    Message m2 = Message.fromJson({
+      "id": "1",
+      "sender_id": "0",
+      "chat_id": "0",
+      "content": "test message 2",
+      "time_sent": "${DateTime.now().subtract(const Duration(days: 10))}"
+    });
+    Message m3 = Message.fromJson({
+      "id": "2",
+      "sender_id": "1",
+      "chat_id": "0",
+      "content": "test message 3 - from sender 1",
+      "time_sent": "${DateTime.now().subtract(const Duration(days: 10))}"
+    });
+    Message m4 = Message.fromJson({
+      "id": "3",
+      "sender_id": "0",
+      "chat_id": "0",
+      "content": "test message 4",
+      "time_sent": "${DateTime.now().subtract(const Duration(days: 10))}"
+    });
+    Message m5 = Message.fromJson({
+      "id": "4",
+      "sender_id": "1",
+      "chat_id": "0",
+      "content": "test message 5 - from sender 1",
+      "time_sent": "${DateTime.now().subtract(const Duration(days: 10))}"
+    });
+    Message m6 = Message.fromJson({
+      "id": "5",
+      "sender_id": "1",
+      "chat_id": "0",
+      "content": "test message 6 - from sender 1",
+      "time_sent": "${DateTime.now().subtract(const Duration(days: 10))}"
+    });
+    List<Message> devTestData = <Message>[m1, m2, m3, m4, m5, m6];
+
+    devTestData.sort((a, b) => a.getTimeSent().compareTo(b.getTimeSent()));
+    // displayMessages = devTestData;
+    activeChat = Chat.full("0", "Dev Test Chat Name", devTestData);
+
+    notifyListeners();
+    return;
+  }
+
+  Chat getActiveChat() => activeChat;
+
+  // List<Message> getDisplayedMessages() => displayMessages;
 }

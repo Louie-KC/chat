@@ -15,6 +15,14 @@ class Chat {
     _messages = List.filled(1, mostRecent);
   }
 
+  Chat.full(this._chatID, this._name, this._messages) {
+    if (_messages.isEmpty) {
+      _lastSenderID = "UNDEFINED";
+    } else {
+      _lastSenderID = _messages.first.getSenderID();
+    }
+  }
+
   String get chatID => _chatID;
   String get chatName => _name;
   String get lastSender => _lastSenderID;
