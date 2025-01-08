@@ -2,9 +2,17 @@
 CREATE TABLE User (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     username VARCHAR(128) NOT NULL,
-    password_hash CHAR(32) NOT NULL, -- hash length 32
+    password_hash VARCHAR(256) NOT NULL,
     PRIMARY KEY (id),
     UNIQUE (username)
+);
+
+CREATE TABLE UserToken (
+    token CHAR(36),
+    user_id BIGINT UNSIGNED,
+    time_set DATETIME DEFAULT NOW(),
+    PRIMARY KEY (token),
+    FOREIGN KEY (user_id) REFERENCES User(id)
 );
 
 CREATE TABLE Room (
