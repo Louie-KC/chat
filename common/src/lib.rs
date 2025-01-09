@@ -5,3 +5,9 @@ pub struct AccountRequest {
     pub username: String,
     pub password: String,
 }
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct AccountPasswordChange {
+    pub old_password: String,
+    pub new_password: String,
+}

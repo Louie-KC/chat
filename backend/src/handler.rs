@@ -3,7 +3,7 @@ use std::str::FromStr;
 use const_format::formatcp;
 use serde_json::json;
 
-use common::AccountRequest;
+use common::{AccountPasswordChange, AccountRequest};
 
 use actix_web::{
     get,
@@ -37,12 +37,14 @@ const MAX_PASSWORD_LEN: usize = 64;
 const BAD_USERNAME_REASON: &str = formatcp!("Username must be between {MIN_USERNAME_LEN} and {MAX_USERNAME_LEN} in length");
 const BAD_PASSWORD_REASON: &str = formatcp!("Password must be between {MIN_PASSWORD_LEN} and {MAX_PASSWORD_LEN} in length");
 const NON_ALLOWED_CHARACTER_REASON: &str = "A field contains dis-allowed characters. Alphanumeric only";
+const BAD_TOKEN_FORMAT_REASON: &str = "Invalid bearer token format";
 
 pub fn config(config: &mut ServiceConfig) -> () {
     config.service(actix_web::web::scope("")
         .service(health)
         .service(register)
         .service(login)
+        .service(change_password)
         .service(clear_tokens)
     );
 }
@@ -122,7 +124,7 @@ async fn login(
     }
 
     // Retrieve User data for input username (if exists).
-    let db_user_data = match db_service.user_get(&body.username).await {
+    let db_user_data = match db_service.user_get_by_username(&body.username).await {
         Ok(user) => user,
         Err(DatabaseServiceError::NoResult) => return HttpResponse::BadRequest().reason("Username does not exist").finish(),
         Err(_) => return HttpResponse::InternalServerError().reason("1").finish()
@@ -155,6 +157,71 @@ async fn login(
     }
 }
 
+#[post("/change-password")]
+pub async fn change_password(
+    db_service: Data<DatabaseService>,
+    argon2: Data<Argon2<'_>>,
+    bearer: BearerAuth,
+    body: Json<AccountPasswordChange>
+) -> HttpResponse {
+    // Input validation
+    if MIN_PASSWORD_LEN > body.new_password.len() || body.new_password.len() > MAX_PASSWORD_LEN {
+        return HttpResponse::BadRequest().reason(BAD_PASSWORD_REASON).finish()
+    }
+    // Character check
+    let old_password_invalid = body.old_password.chars().any(|c| !c.is_ascii_alphanumeric());
+    let new_password_invalid = body.new_password.chars().any(|c| !c.is_ascii_alphanumeric());
+    if old_password_invalid || new_password_invalid {
+        return HttpResponse::BadRequest().reason(NON_ALLOWED_CHARACTER_REASON).finish();
+    }
+
+    // Ensure passwords are different
+    if body.old_password.eq(&body.new_password) {
+        return HttpResponse::BadRequest().reason("New and old passwords are identical").finish()
+    }
+
+    let token = match Uuid::from_str(bearer.token()) {
+        Ok(uuid) => uuid,
+        Err(_) => return HttpResponse::BadRequest().reason(BAD_TOKEN_FORMAT_REASON).finish(),
+    };
+
+    // Retrieve user_id from token, then current User record
+    let user_id = match db_service.user_id_from_token(&token).await {
+        Ok(id) => id,
+        Err(DatabaseServiceError::NoResult) => return HttpResponse::Unauthorized().finish(),
+        Err(_) => return HttpResponse::InternalServerError().reason("1").finish(),
+    };
+
+    let db_user_data = match db_service.user_get_by_id(&user_id).await {
+        Ok(user) => user,
+        Err(_) => return HttpResponse::InternalServerError().reason("2").finish(),
+    };
+
+    // Check old_password is correct
+    let stored_hash = match PasswordHash::new(&db_user_data.password_hash) {
+        Ok(hash) => hash,
+        Err(_) => return HttpResponse::InternalServerError().reason("2").finish(),
+    };
+
+    if let Err(_) = argon2.verify_password(body.old_password.as_bytes(), &stored_hash) { 
+        return HttpResponse::BadRequest().reason("Incorrect old password").finish()
+    };
+    std::mem::drop(stored_hash);
+
+    // Generate hash for new_password
+    let salt = SaltString::generate(&mut OsRng);
+    let new_hash = match argon2.hash_password(body.new_password.as_bytes(), &salt) {
+        Ok(hash) => hash.to_string(),
+        Err(_) => return HttpResponse::InternalServerError().reason("2").finish(),
+    };
+
+    // Update stored password hash
+    match db_service.user_update_password_hash(&user_id, new_hash).await {
+        Ok(()) => HttpResponse::Ok().finish(),
+        Err(_) => HttpResponse::InternalServerError().reason("3").finish(),
+    }
+}
+
 #[post("/clear-tokens")]
 pub async fn clear_tokens(
     db_service: Data<DatabaseService>,
@@ -163,7 +230,7 @@ pub async fn clear_tokens(
     // bearer check
     let token = match Uuid::from_str(bearer.token()) {
         Ok(uuid) => uuid,
-        Err(_) => return HttpResponse::BadRequest().reason("Invalid bearer token format").finish(),
+        Err(_) => return HttpResponse::BadRequest().reason(BAD_TOKEN_FORMAT_REASON).finish(),
     };
 
     // Find the user_id associated with the token, if any

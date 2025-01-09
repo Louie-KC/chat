@@ -98,13 +98,28 @@ impl DatabaseService {
 
     /// Retrieve the User record from the connected database with the provided
     /// `username`.
-    pub async fn user_get(&self, username: &str) -> DBResult<DBUser> {
+    pub async fn user_get_by_username(&self, username: &str) -> DBResult<DBUser> {
         let qr = sqlx::query_as!(
             DBUser,
             "SELECT *
             FROM User
             WHERE username = ?;",
             username)
+            .fetch_one(&self.conn_pool)
+            .await;
+
+        Ok(qr?)
+    }
+
+    /// Retrieve the User record from the connected database with the provided
+    /// `username`.
+    pub async fn user_get_by_id(&self, user_id: &u64) -> DBResult<DBUser> {
+        let qr = sqlx::query_as!(
+            DBUser,
+            "SELECT *
+            FROM User
+            WHERE id = ?;",
+            user_id)
             .fetch_one(&self.conn_pool)
             .await;
 
@@ -154,6 +169,23 @@ impl DatabaseService {
 
         match qr {
             Ok(_)  => Ok(()),
+            Err(e) => Err(e.into()),
+        }
+    }
+
+    pub async fn user_update_password_hash(&self, user_id: &u64, password_hash: String) -> DBResult<()> {
+        let qr = sqlx::query!(
+            "UPDATE User
+            SET password_hash = ?
+            WHERE id = ?",
+            password_hash,
+            user_id)
+            .execute(&self.conn_pool)
+            .await;
+
+        match qr {
+            Ok(r) if r.rows_affected() == 1 => Ok(()),
+            Ok(_)  => Err(DatabaseServiceError::NoResult),
             Err(e) => Err(e.into()),
         }
     }
