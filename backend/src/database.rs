@@ -128,4 +128,33 @@ impl DatabaseService {
         }
     }
 
+    /// Find the user_id associated with the provided `token` (if present).
+    pub async fn user_id_from_token(&self, token: &Uuid) -> DBResult<u64> {
+        let qr = sqlx::query!(
+            "SELECT user_id
+            FROM UserToken
+            WHERE token = ?",
+            token.to_string()
+        ).fetch_one(&self.conn_pool)
+        .await;
+
+        match qr {
+            Ok(r) => Ok(r.user_id),
+            Err(e) => Err(e.into()),
+        }
+    }
+
+    /// Remove all tokens associated with the provided `user_id`.
+    pub async fn user_clear_tokens_by_id(&self, user_id: &u64) -> DBResult<()> {
+        let qr = sqlx::query!("DELETE FROM UserToken WHERE user_id = ?", user_id)
+            .execute(&self.conn_pool)
+            .await;
+
+        println!("user_clear_tokens_by_id: {:?}", qr);
+
+        match qr {
+            Ok(_)  => Ok(()),
+            Err(e) => Err(e.into()),
+        }
+    }
 }

@@ -9,7 +9,7 @@ CREATE TABLE User (
 
 CREATE TABLE UserToken (
     token CHAR(36),
-    user_id BIGINT UNSIGNED,
+    user_id BIGINT UNSIGNED NOT NULL,
     time_set DATETIME DEFAULT NOW(),
     PRIMARY KEY (token),
     FOREIGN KEY (user_id) REFERENCES User(id)

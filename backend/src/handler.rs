@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use const_format::formatcp;
 use serde_json::json;
 
@@ -11,6 +13,7 @@ use actix_web::{
     },
     HttpResponse
 };
+use actix_web_httpauth::extractors::bearer::BearerAuth;
 
 use argon2::{
     password_hash::{
@@ -40,6 +43,7 @@ pub fn config(config: &mut ServiceConfig) -> () {
         .service(health)
         .service(register)
         .service(login)
+        .service(clear_tokens)
     );
 }
 
@@ -148,5 +152,29 @@ async fn login(
     match token_set_result {
         Ok(()) => HttpResponse::Ok().json(json!({"token": token.to_string()})),
         Err(_) => HttpResponse::InternalServerError().reason("3").finish(),
+    }
+}
+
+#[post("/clear-tokens")]
+pub async fn clear_tokens(
+    db_service: Data<DatabaseService>,
+    bearer: BearerAuth
+) -> HttpResponse {
+    // bearer check
+    let token = match Uuid::from_str(bearer.token()) {
+        Ok(uuid) => uuid,
+        Err(_) => return HttpResponse::BadRequest().reason("Invalid bearer token format").finish(),
+    };
+
+    // Find the user_id associated with the token, if any
+    let user_id = match db_service.user_id_from_token(&token).await {
+        Ok(id) => id,
+        Err(DatabaseServiceError::NoResult) => return HttpResponse::Unauthorized().finish(),
+        Err(_) => return HttpResponse::InternalServerError().reason("1").finish(),
+    };
+
+    match db_service.user_clear_tokens_by_id(&user_id).await {
+        Ok(()) => HttpResponse::Ok().finish(),
+        Err(_) => HttpResponse::InternalServerError().reason("2").finish(),
     }
 }
