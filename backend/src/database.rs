@@ -64,6 +64,8 @@ impl DatabaseService {
         }
     }
 
+    /*  User management  */
+
     /// Determine if a User record exists in the connected database with the
     /// provided `username`.
     pub async fn user_exists(&self, username: &str) -> DBResult<bool> {
@@ -189,4 +191,117 @@ impl DatabaseService {
             Err(e) => Err(e.into()),
         }
     }
+
+    /*  Chat room management  */
+
+    /// Create a new chat room with the specified `room_name` returning the
+    /// rooms `id` on success.
+    pub async fn chat_room_create(&self, room_name: String) -> DBResult<u64> {
+        let qr = sqlx::query!(
+            "INSERT INTO Room (Name) VALUES (?);",
+            room_name)
+            .execute(&self.conn_pool)
+            .await;
+
+        match qr {
+            Ok(r) if r.rows_affected() == 1 => Ok(r.last_insert_id()),
+            Ok(_)  => Err(DatabaseServiceError::NoResult),
+            Err(e) => Err(e.into()),
+        }
+    }
+
+    pub async fn chat_room_change_name(&self, room_id: &u64, name: String) -> DBResult<()> {
+        let qr = sqlx::query!(
+            "UPDATE Room
+            SET name = ?
+            WHERE id = ?",
+            name,
+            room_id)
+            .execute(&self.conn_pool)
+            .await;
+
+        match qr {
+            Ok(r) if r.rows_affected() > 0 => Ok(()),
+            Ok(_)  => Err(DatabaseServiceError::NoResult),
+            Err(e) => Err(e.into()),
+        }
+    }
+
+    /// Add the user specified by `user_id` to the chat room specified by
+    /// `room_id`.
+    pub async fn chat_room_add_user(&self, room_id: &u64, user_id: &u64) -> DBResult<()> {
+        let qr = sqlx::query!(
+            "INSERT INTO RoomMember VALUES (?, ?);",
+            room_id,
+            user_id)
+            .execute(&self.conn_pool)
+            .await;
+
+        match qr {
+            Ok(r) if r.rows_affected() == 1 => Ok(()),
+            Ok(_)  => Err(DatabaseServiceError::NoResult),
+            Err(e) => Err(e.into()),
+        }
+    }
+
+    /// Remove the user specified by `user_id` from the chat room specified
+    /// by `room_id`
+    pub async fn chat_room_remove_user(&self, room_id: &u64, user_id: &u64) -> DBResult<()> {
+        let qr = sqlx::query!(
+            "DELETE FROM RoomMember
+            WHERE room_id = ?
+            AND user_id = ?",
+            room_id,
+            user_id)
+            .execute(&self.conn_pool)
+            .await;
+
+        match qr {
+            Ok(r) if r.rows_affected() == 1 => Ok(()),
+            Ok(_)  => Err(DatabaseServiceError::NoResult),
+            Err(e) => Err(e.into())
+        }
+    }
+
+    /// Retrieve a list of user_ids in the chat room specified by `room_id`.
+    /// The returned user_ids are sorted.
+    pub async fn chat_room_get_user_ids(&self, room_id: &u64) -> DBResult<Vec<u64>> {
+        let qr = sqlx::query!(
+            "SELECT user_id
+            FROM RoomMember
+            WHERE room_id = ?
+            ORDER BY user_id ASC",
+            room_id)
+            .fetch_all(&self.conn_pool)
+            .await;
+
+        match qr {
+            Ok(r) if !r.is_empty() => Ok(Vec::from_iter(r.iter().map(|row| row.user_id))),
+            Ok(_)  => Err(DatabaseServiceError::NoResult),
+            Err(e) => Err(e.into()),
+        }
+    }
+
+    /// Retrieve a list of usernames of members in the chat room specified by
+    /// `room_id`. The returned usernames are sorted.
+    pub async fn chat_room_get_usernames(&self, room_id: &u64) -> DBResult<Vec<String>> {
+        let qr = sqlx::query!(
+            "SELECT username
+            FROM User
+            WHERE id IN (
+                SELECT user_id
+                FROM RoomMember
+                WHERE room_id = ?
+            )
+            ORDER BY username ASC",
+            room_id)
+            .fetch_all(&self.conn_pool)
+            .await;
+            
+        match qr {
+            Ok(r) => Ok(Vec::from_iter(r.iter().map(|row| row.username.clone()))),
+            Err(e) => Err(e.into()),
+        }
+    }
+
 }
