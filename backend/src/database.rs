@@ -6,7 +6,9 @@ use sqlx::{
 use sqlx::mysql::MySqlPoolOptions;
 use uuid::Uuid;
 
-use crate::models::DBUser;
+use common::ChatRoom;
+
+use crate::models::{DBUser, DBRoomMember};
 
 type DBResult<T> = Result<T, DatabaseServiceError>;
 
@@ -194,9 +196,28 @@ impl DatabaseService {
 
     /*  Chat room management  */
 
+    /// Get a list of chat rooms that the user specified by `user_id` are
+    /// members of.
+    pub async fn chat_room_list_for_user(&self, user_id: &u64) -> DBResult<Vec<ChatRoom>> {
+        let qr = sqlx::query_as!(
+            ChatRoom,
+            "SELECT *
+            FROM Room
+            WHERE id IN (
+                SELECT room_id
+                FROM RoomMember
+                WHERE user_id = ?
+            );",
+            user_id)
+            .fetch_all(&self.conn_pool)
+            .await;
+
+        Ok(qr?)
+    }
+
     /// Create a new chat room with the specified `room_name` returning the
     /// rooms `id` on success.
-    pub async fn chat_room_create(&self, room_name: String) -> DBResult<u64> {
+    pub async fn chat_room_create(&self, room_name: &str) -> DBResult<u64> {
         let qr = sqlx::query!(
             "INSERT INTO Room (Name) VALUES (?);",
             room_name)
@@ -210,7 +231,7 @@ impl DatabaseService {
         }
     }
 
-    pub async fn chat_room_change_name(&self, room_id: &u64, name: String) -> DBResult<()> {
+    pub async fn chat_room_change_name(&self, room_id: &u64, name: &str) -> DBResult<()> {
         let qr = sqlx::query!(
             "UPDATE Room
             SET name = ?
@@ -263,43 +284,22 @@ impl DatabaseService {
         }
     }
 
-    /// Retrieve a list of user_ids in the chat room specified by `room_id`.
-    /// The returned user_ids are sorted.
-    pub async fn chat_room_get_user_ids(&self, room_id: &u64) -> DBResult<Vec<u64>> {
-        let qr = sqlx::query!(
-            "SELECT user_id
-            FROM RoomMember
-            WHERE room_id = ?
-            ORDER BY user_id ASC",
+    /// Retrieve a list of users that are members of a room specified by
+    /// `room_id`. User info includes user IDs and usernames.
+    pub async fn chat_room_get_users(&self, room_id: &u64) -> DBResult<Vec<DBRoomMember>> {
+        let qr = sqlx::query_as!(
+            DBRoomMember,
+            "SELECT u.id AS 'user_id', u.username AS 'username'
+            FROM User u
+            INNER JOIN RoomMember rm ON u.id = rm.user_id
+            WHERE rm.room_id = ?",
             room_id)
             .fetch_all(&self.conn_pool)
             .await;
 
         match qr {
-            Ok(r) if !r.is_empty() => Ok(Vec::from_iter(r.iter().map(|row| row.user_id))),
+            Ok(members) if !members.is_empty() => Ok(members),
             Ok(_)  => Err(DatabaseServiceError::NoResult),
-            Err(e) => Err(e.into()),
-        }
-    }
-
-    /// Retrieve a list of usernames of members in the chat room specified by
-    /// `room_id`. The returned usernames are sorted.
-    pub async fn chat_room_get_usernames(&self, room_id: &u64) -> DBResult<Vec<String>> {
-        let qr = sqlx::query!(
-            "SELECT username
-            FROM User
-            WHERE id IN (
-                SELECT user_id
-                FROM RoomMember
-                WHERE room_id = ?
-            )
-            ORDER BY username ASC",
-            room_id)
-            .fetch_all(&self.conn_pool)
-            .await;
-            
-        match qr {
-            Ok(r) => Ok(Vec::from_iter(r.iter().map(|row| row.username.clone()))),
             Err(e) => Err(e.into()),
         }
     }
