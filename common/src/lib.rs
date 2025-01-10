@@ -18,3 +18,19 @@ pub struct ChatRoom {
     pub name: String,
 }
 
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ChatRoomName {
+    pub room_name: String,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub enum ChatRoomManageUserAction {
+    AddUser,
+    RemoveUser
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ChatRoomManageUser {
+    pub username: String,
+    pub action: ChatRoomManageUserAction
+}
