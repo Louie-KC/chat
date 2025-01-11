@@ -186,16 +186,10 @@ pub async fn change_password(
         return HttpResponse::BadRequest().reason("New and old passwords are identical").finish()
     }
 
-    let token = match Uuid::from_str(bearer.token()) {
-        Ok(uuid) => uuid,
-        Err(_) => return HttpResponse::BadRequest().reason(BAD_TOKEN_FORMAT_REASON).finish(),
-    };
-
-    // Retrieve user_id from token, then current User record
-    let user_id = match db_service.user_id_from_token(&token).await {
+    // Identify requesting user, then get current User record
+    let user_id = match token_to_user_id(&db_service, bearer.token()).await {
         Ok(id) => id,
-        Err(DatabaseServiceError::NoResult) => return HttpResponse::Unauthorized().finish(),
-        Err(_) => return HttpResponse::InternalServerError().reason("1").finish(),
+        Err(response) => return response,
     };
 
     let db_user_data = match db_service.user_get_by_id(&user_id).await {
@@ -233,17 +227,11 @@ pub async fn clear_tokens(
     db_service: Data<DatabaseService>,
     bearer: BearerAuth
 ) -> HttpResponse {
-    // bearer check
-    let token = match Uuid::from_str(bearer.token()) {
-        Ok(uuid) => uuid,
-        Err(_) => return HttpResponse::BadRequest().reason(BAD_TOKEN_FORMAT_REASON).finish(),
-    };
 
-    // Find the user_id associated with the token, if any
-    let user_id = match db_service.user_id_from_token(&token).await {
+    // Identify requesting user
+    let user_id = match token_to_user_id(&db_service, bearer.token()).await {
         Ok(id) => id,
-        Err(DatabaseServiceError::NoResult) => return HttpResponse::Unauthorized().finish(),
-        Err(_) => return HttpResponse::InternalServerError().reason("1").finish(),
+        Err(response) => return response,
     };
 
     match db_service.user_clear_tokens_by_id(&user_id).await {
@@ -259,16 +247,10 @@ async fn get_room_list(
     db_service: Data<DatabaseService>,
     bearer: BearerAuth
 ) -> HttpResponse {
-    // Get requesting user id
-    let token = match Uuid::from_str(bearer.token()) {
-        Ok(uuid) => uuid,
-        Err(_) => return HttpResponse::BadRequest().reason(BAD_TOKEN_FORMAT_REASON).finish(),
-    };
-
-    let user_id = match db_service.user_id_from_token(&token).await {
+    // Identify requesting user
+    let user_id = match token_to_user_id(&db_service, bearer.token()).await {
         Ok(id) => id,
-        Err(DatabaseServiceError::NoResult) => return HttpResponse::Unauthorized().finish(),
-        Err(_) => return HttpResponse::InternalServerError().reason("1").finish(),
+        Err(response) => return response,
     };
 
     match db_service.chat_room_list_for_user(&user_id).await {
@@ -295,16 +277,10 @@ async fn create_chat_room(
         return HttpResponse::BadRequest().reason(NON_ALLOWED_CHARACTER_REASON).finish();
     }
 
-    // Bearer token check
-    let token = match Uuid::from_str(bearer.token()) {
-        Ok(uuid) => uuid,
-        Err(_) => return HttpResponse::BadRequest().reason(BAD_TOKEN_FORMAT_REASON).finish(),
-    };
-
-    let user_id = match db_service.user_id_from_token(&token).await {
+    // Identify requesting user
+    let user_id = match token_to_user_id(&db_service, bearer.token()).await {
         Ok(id) => id,
-        Err(DatabaseServiceError::NoResult) => return HttpResponse::Unauthorized().finish(),
-        Err(_) => return HttpResponse::InternalServerError().reason("1").finish(),
+        Err(response) => return response,
     };
 
     // Create chat room
@@ -341,16 +317,10 @@ async fn change_room_name(
         return HttpResponse::BadRequest().reason(NON_ALLOWED_CHARACTER_REASON).finish();
     }
 
-    // Get requesting user id
-    let token = match Uuid::from_str(bearer.token()) {
-        Ok(uuid) => uuid,
-        Err(_) => return HttpResponse::BadRequest().reason(BAD_TOKEN_FORMAT_REASON).finish(),
-    };
-
-    let user_id = match db_service.user_id_from_token(&token).await {
+    // Identify requesting user
+    let user_id = match token_to_user_id(&db_service, bearer.token()).await {
         Ok(id) => id,
-        Err(DatabaseServiceError::NoResult) => return HttpResponse::Unauthorized().finish(),
-        Err(_) => return HttpResponse::InternalServerError().reason("1").finish(),
+        Err(response) => return response,
     };
 
     // Verify that user is in the room_id
@@ -377,16 +347,10 @@ async fn get_room_member_names(
 ) -> HttpResponse {
     let room_id = path.into_inner();
 
-    // Bearer token check
-    let token = match Uuid::from_str(bearer.token()) {
-        Ok(uuid) => uuid,
-        Err(_) => return HttpResponse::BadRequest().reason(BAD_TOKEN_FORMAT_REASON).finish(),
-    };
-
-    let user_id = match db_service.user_id_from_token(&token).await {
+    // Identify requesting user
+    let user_id = match token_to_user_id(&db_service, bearer.token()).await {
         Ok(id) => id,
-        Err(DatabaseServiceError::NoResult) => return HttpResponse::Unauthorized().finish(),
-        Err(_) => return HttpResponse::InternalServerError().reason("1").finish(),
+        Err(response) => return response,
     };
 
     let members = match db_service.chat_room_get_users(&room_id).await {
@@ -414,15 +378,10 @@ async fn manage_room_members(
 ) -> HttpResponse {
     let room_id = path.into_inner();
 
-    // get requesting user id
-    let token = match Uuid::from_str(bearer.token()) {
-        Ok(uuid) => uuid,
-        Err(_) => return HttpResponse::BadRequest().reason(BAD_TOKEN_FORMAT_REASON).finish(),
-    };
-    let requester_id = match db_service.user_id_from_token(&token).await {
+    // Identify requesting user
+    let requester_id = match token_to_user_id(&db_service, bearer.token()).await {
         Ok(id) => id,
-        Err(DatabaseServiceError::NoResult) => return HttpResponse::Unauthorized().finish(),
-        Err(_) => return HttpResponse::InternalServerError().reason("1").finish(),
+        Err(response) => return response,
     };
 
     // Get room members
@@ -467,5 +426,26 @@ async fn manage_room_members(
         common::ChatRoomManageUserAction::RemoveUser => {
             HttpResponse::BadRequest().reason("User being removed is not part of the room").finish()
         }
+    }
+}
+
+
+// Util
+
+/// Find the user id that the provided `bearer_token` maps to.
+/// 
+/// If the provided `bearer_token` is in an incorrect format, or does not map
+/// to a user id, then the appropriate HttpResponse is returned.
+/// * bad token format - HTTP 400 Bad Request
+/// * no mapped user - HTTP 401 Unauthorized
+async fn token_to_user_id(db_service: &DatabaseService, bearer_token: &str) -> Result<u64, HttpResponse> {
+    let token = match Uuid::from_str(bearer_token) {
+        Ok(uuid) => uuid,
+        Err(_) => return Err(HttpResponse::BadRequest().reason(BAD_TOKEN_FORMAT_REASON).finish()),
+    };
+    match db_service.user_id_from_token(&token).await {
+        Ok(user_id) => Ok(user_id),
+        Err(DatabaseServiceError::NoResult) => Err(HttpResponse::Unauthorized().finish()),
+        Err(_) => Err(HttpResponse::InternalServerError().reason("map").finish()),
     }
 }
