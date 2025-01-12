@@ -66,7 +66,7 @@ async fn health(db_service: Data<DatabaseService>) -> HttpResponse {
 
 // Account management
 
-#[post("/register")]
+#[post("/account/register")]
 async fn register(
     db_service: Data<DatabaseService>,
     argon2: Data<Argon2<'_>>,
@@ -108,7 +108,7 @@ async fn register(
     }
 }
 
-#[post("/login")]
+#[post("/account/login")]
 async fn login(
     db_service: Data<DatabaseService>,
     argon2: Data<Argon2<'_>>,
@@ -163,7 +163,7 @@ async fn login(
     }
 }
 
-#[post("/change-password")]
+#[post("/account/change-password")]
 pub async fn change_password(
     db_service: Data<DatabaseService>,
     argon2: Data<Argon2<'_>>,
@@ -222,7 +222,7 @@ pub async fn change_password(
     }
 }
 
-#[post("/clear-tokens")]
+#[post("/account/clear-tokens")]
 pub async fn clear_tokens(
     db_service: Data<DatabaseService>,
     bearer: BearerAuth
@@ -242,7 +242,7 @@ pub async fn clear_tokens(
 
 // Chat room management
 
-#[get("/rooms")]
+#[get("/chat/rooms")]
 async fn get_room_list(
     db_service: Data<DatabaseService>,
     bearer: BearerAuth
@@ -259,7 +259,7 @@ async fn get_room_list(
     }
 }
 
-#[post("/create-room")]
+#[post("/chat/create-room")]
 async fn create_chat_room(
     db_service: Data<DatabaseService>,
     bearer: BearerAuth,
@@ -296,7 +296,7 @@ async fn create_chat_room(
     }
 }
 
-#[put("/{room_id}/change-name")]
+#[put("/chat/{room_id}/change-name")]
 async fn change_room_name(
     db_service: Data<DatabaseService>,
     bearer: BearerAuth,
@@ -339,7 +339,7 @@ async fn change_room_name(
     }
 }
 
-#[get("/{room_id}/members")]
+#[get("/chat/{room_id}/members")]
 async fn get_room_member_names(
     db_service: Data<DatabaseService>,
     bearer: BearerAuth,
@@ -369,7 +369,7 @@ async fn get_room_member_names(
     }))
 }
 
-#[post("/{room_id}/manage-user")]
+#[post("/chat/{room_id}/manage-user")]
 async fn manage_room_members(
     db_service: Data<DatabaseService>,
     bearer: BearerAuth,

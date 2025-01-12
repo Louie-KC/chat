@@ -6,20 +6,20 @@ Admin
 
 * [`GET  /health`](#get-health)
 
-Manage account
+Manage account (`/account`)
 
-* [`POST /register`](#post-register)
-* [`POST /login`](#post-login)
-* [`POST /change-password`](#post-change-password)
-* [`POST /clear-tokens`](#post-clear-tokens)
+* [`POST /account/register`](#post-accountregister)
+* [`POST /account/login`](#post-accountlogin)
+* [`POST /account/change-password`](#post-accountchange-password)
+* [`POST /account/clear-tokens`](#post-accountclear-tokens)
 
-Manage chat room
+Manage chat room (`/chat`)
 
-* [`GET  /rooms`](#get-rooms)
-* [`POST /create-room`](#post-create-room)
-* [`PUT  /{room_id}/change-name`](#put-room_idchange-name)
-* [`GET  /{room_id}/members`](#get-room_idmembers)
-* [`POST /{room_id}/manage-user`](#post-room_idmanage-user)
+* [`GET  /chat/rooms`](#get-rooms)
+* [`POST /chat/create-room`](#post-create-room)
+* [`PUT  /chat/{room_id}/change-name`](#put-room_idchange-name)
+* [`GET  /chat/{room_id}/members`](#get-room_idmembers)
+* [`POST /chat/{room_id}/manage-user`](#post-room_idmanage-user)
 
 ### GET /health
 
@@ -30,7 +30,7 @@ Poll the server to see if it is running.
 * Possible responses:
     * HTTP 200 OK: The server is running
 
-### POST /register
+### POST /account/register
 Create a new user account.
 
 * Authentication: None
@@ -46,7 +46,7 @@ Create a new user account.
     * HTTP 400 Bad Request: Disallowed characters in json payload, or incorrect length. See reason.
     * HTTP 500 Internal Server Error: An error has occurred.
 
-### POST /login
+### POST /account/login
 Login to an existing user account, generating and returning an authentication token on success. 
 
 Note: The returned token is used in all requests where Bearer authentication is required.
@@ -69,7 +69,7 @@ Note: The returned token is used in all requests where Bearer authentication is 
     * HTTP 400 Bad Request: Bad login details, or disallowed characters in json payload, or incorrect length. See reason.
     * HTTP 500 Internal Server Error: An error has occurred.
 
-### POST /change-password
+### POST /account/change-password
 Change the password of an existing user account.
 
 * Authentication: Bearer
@@ -91,7 +91,7 @@ Change the password of an existing user account.
     * HTTP 401 Unauthorized: The provided authentication token does not map to a user.
     * HTTP 500 Internal Server Error: An error has occurred.
 
-### POST /clear-tokens
+### POST /account/clear-tokens
 Removes all active authentication tokens for a user account. This includes the token provided in this HTTP request.
 
 * Authentication: Bearer
@@ -102,7 +102,7 @@ Removes all active authentication tokens for a user account. This includes the t
     * HTTP 401 Unauthorized: The provided authentication token does not map to a user.
     * HTTP 500 Internal Server Error: An error has occurred.
 
-### GET /rooms
+### GET /chat/rooms
 Retrieve a list of rooms that the logged in user are members of.
 
 * Authentication: Bearer
@@ -118,7 +118,7 @@ Retrieve a list of rooms that the logged in user are members of.
     * HTTP 401 Unauthorized: The provided authentication token does not map to a logged in user.
     * HTTP 500 Internal Server Error: An error has occurred.
 
-### POST /create-room
+### POST /chat/create-room
 Create a chat room with a provided name and become the first member.
 
 * Authentication: Bearer
@@ -138,7 +138,7 @@ Create a chat room with a provided name and become the first member.
         * The provided authentication token does not map to a user.
     * HTTP 500 Internal Server Error: An error has occurred.
 
-### PUT /{room_id}/change-name
+### PUT /chat/{room_id}/change-name
 Change the name of the room specified by the `room_id` parameter. Only rooms that the logged in user are a part of can be changed.
 
 * Authentication: Bearer
@@ -159,7 +159,7 @@ Change the name of the room specified by the `room_id` parameter. Only rooms tha
         * The logged in user is not a member of the specified room.
     * HTTP 500 Internal Server Error: An error has occurred.
 
-### GET /{room_id}/members
+### GET /chat/{room_id}/members
 List the usernames of members in the room specified by the `room_id` parameter. Only rooms that the logged in user are a part of can be requested.
 
 * Authentication: Bearer
@@ -172,7 +172,7 @@ List the usernames of members in the room specified by the `room_id` parameter. 
         * The logged in user is not a member of the specified room.
     * HTTP 500 Internal Server Error: An error has occurred.
 
-### POST /{room_id}/manage-user
+### POST /chat/{room_id}/manage-user
 Add or remove a user from a chat room specified by the `room_id` parameter.
 
 The logged in user must be a member of the room that the request specifies. I.O.W, the user is only authorised to make this request for rooms they are in.
