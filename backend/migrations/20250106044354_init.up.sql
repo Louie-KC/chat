@@ -31,10 +31,11 @@ CREATE TABLE RoomMember (
 
 CREATE TABLE Message (
     id BIGINT UNSIGNED AUTO_INCREMENT,
-    room_id BIGINT UNSIGNED,
-    sender_id BIGINT UNSIGNED,
+    room_id BIGINT UNSIGNED NOT NULL,
+    sender_id BIGINT UNSIGNED NOT NULL,
     body VARCHAR(1000) NOT NULL,
-    time_sent DATETIME DEFAULT NOW(),
+    -- TIMESTAMP is UTC, DATETIME is naive
+    time_sent TIMESTAMP NOT NULL DEFAULT NOW(),
     PRIMARY KEY(id, room_id),
     FOREIGN KEY (room_id) REFERENCES Room(id),
     FOREIGN KEY (sender_id) REFERENCES User(id)

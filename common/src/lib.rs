@@ -1,4 +1,5 @@
 use serde::{Serialize, Deserialize};
+use chrono::{DateTime, Utc};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct AccountRequest {
@@ -33,4 +34,13 @@ pub enum ChatRoomManageUserAction {
 pub struct ChatRoomManageUser {
     pub username: String,
     pub action: ChatRoomManageUserAction
+}
+
+#[derive(Serialize, Deserialize, Debug)] 
+pub struct ChatMessage {
+    pub id: Option<u64>,  // is 2^64 enough? also in schema
+    pub room_id: u64,
+    pub sender_id: Option<u64>,
+    pub body: String,
+    pub time_sent: Option<DateTime<Utc>>
 }
