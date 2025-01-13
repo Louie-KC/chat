@@ -6,7 +6,8 @@ use dotenv::dotenv;
 
 use actix_web::{
     App,
-    HttpServer
+    HttpServer,
+    middleware::Logger
 };
 use argon2::Argon2;
 use database::DatabaseService;
@@ -32,6 +33,7 @@ async fn main() -> std::io::Result<()> {
 
     let app = HttpServer::new(move ||
         App::new()
+            .wrap(Logger::new("%a \"%r\" %s %b %T"))
             .configure(handler::config)
             .app_data(db_service_data.clone())
             .app_data(argon2_data.clone())
