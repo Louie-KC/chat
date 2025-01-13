@@ -6,7 +6,7 @@ use sqlx::{
 use sqlx::mysql::MySqlPoolOptions;
 use uuid::Uuid;
 
-use common::ChatRoom;
+use common::{ChatMessage, ChatRoom};
 
 use crate::models::{DBUser, DBRoomMember};
 
@@ -300,6 +300,63 @@ impl DatabaseService {
         match qr {
             Ok(members) if !members.is_empty() => Ok(members),
             Ok(_)  => Err(DatabaseServiceError::NoResult),
+            Err(e) => Err(e.into()),
+        }
+    }
+
+
+    /*  Chat interaction */
+
+    /// Retrieve a window of messages from a particular chat room specified by
+    /// `room_id`. The messages within this window are ordered with having the
+    /// oldest/earliest message first, and newest/latest message last.
+    /// 
+    /// `offset` controls how far away from the newest message the window starts.
+    /// `limit` then controls the window size (I.O.W the quantity of messages).
+    pub async fn chat_room_read_messages(&self, room_id: &u64, offset: &u64, limit: &u64) -> DBResult<Vec<ChatMessage>> {
+        let qr = sqlx::query_as!(
+            ChatMessage,
+            "SELECT *
+            FROM Message
+            WHERE room_id = ?
+            ORDER BY time_sent ASC
+            LIMIT ?
+            OFFSET ?;",
+            room_id,
+            limit,
+            offset)
+            .fetch_all(&self.conn_pool)
+            .await;
+        
+        match qr {
+            Ok(messages) => Ok(messages),
+            Err(e) => Err(e.into()),
+        }
+    }
+
+    /// Record a new message for a particular chat room.
+    /// 
+    /// The Option fields of the `message` are ignored.
+    /// 
+    /// `user_id` should be derived from the auth token, instead of the
+    /// `sender_id` of the ChatMessage struct.
+    pub async fn chat_room_send_message(&self, user_id: &u64, message: &ChatMessage) -> DBResult<()> {
+        if message.id.is_some() || message.time_sent.is_some() {
+            warn!("chat_room_send_message invoked with populated Option fields: {:?}", message);
+        }
+        
+        let qr = sqlx::query!(
+            "INSERT INTO Message (room_id, sender_id, body)
+            VALUES (?, ?, ?)",
+            message.room_id,
+            user_id,
+            message.body)
+            .execute(&self.conn_pool)
+            .await;
+
+        match qr {
+            Ok(r) if r.rows_affected() > 0 => Ok(()),
+            Ok(_)  => Ok(()),
             Err(e) => Err(e.into()),
         }
     }

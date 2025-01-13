@@ -3,7 +3,7 @@ use std::str::FromStr;
 use const_format::formatcp;
 use serde_json::json;
 
-use common::{AccountPasswordChange, AccountRequest, ChatRoomManageUser, ChatRoomName};
+use common::{AccountPasswordChange, AccountRequest, ChatMessage, ChatRoomManageUser, ChatRoomName};
 
 use actix_web::{
     get, post, put, web::{
@@ -50,6 +50,9 @@ pub fn config(config: &mut ServiceConfig) -> () {
         .service(change_room_name)
         .service(get_room_member_names)
         .service(manage_room_members)
+        // Chat interaction
+        .service(chat_get_messages)
+        .service(chat_send_message)
     );
 }
 
@@ -429,6 +432,78 @@ async fn manage_room_members(
     }
 }
 
+
+// Chat interaction
+#[get("/chat/{room_id}/{offset}/{limit}")]
+async fn chat_get_messages(
+    db_service: Data<DatabaseService>,
+    bearer: BearerAuth,
+    path: Path<(u64, u64, u64)>
+) -> HttpResponse {
+    let (room_id, offset, limit) = path.into_inner();
+
+    if limit == 0 {
+        return HttpResponse::BadRequest().reason("limit parameter was 0").finish()
+    }
+
+    // Identify requesting user
+    let user_id = match token_to_user_id(&db_service, bearer.token()).await {
+        Ok(id) => id,
+        Err(response) => return response,
+    };
+
+    // Check if requestng user is in the room
+    let members = match db_service.chat_room_get_users(&room_id).await {
+        Ok(members) => members,
+        Err(DatabaseServiceError::NoResult) => Vec::new(),
+        Err(_) => return HttpResponse::InternalServerError().reason("1").finish(),
+    };
+
+    if !members.iter().map(|m| m.user_id).any(|id| id == user_id) {
+        return HttpResponse::Unauthorized().reason("User is not part of the room").finish()
+    }
+
+    // Retrieve messages to be returned
+    match db_service.chat_room_read_messages(&room_id, &offset, &limit).await {
+        Ok(msg_window) => HttpResponse::Ok().json(json!({"messages": msg_window})),
+        Err(_) => HttpResponse::InternalServerError().reason("2").finish(),
+    }
+}
+
+#[post("/chat")]
+async fn chat_send_message(
+    db_service: Data<DatabaseService>,
+    bearer: BearerAuth,
+    body: Json<ChatMessage>
+) -> HttpResponse {
+    // Disallow optional fields being populated
+    if body.id.is_some() || body.sender_id.is_some() || body.time_sent.is_some() {
+        return HttpResponse::BadRequest().reason("id, sender_id, or time_sent fields have values").finish()
+    }
+
+    // Identify requesting user
+    let user_id = match token_to_user_id(&db_service, bearer.token()).await {
+        Ok(id) => id,
+        Err(response) => return response,
+    };
+
+    // Check if requestng user is in the room
+    let members = match db_service.chat_room_get_users(&body.room_id).await {
+        Ok(members) => members,
+        Err(DatabaseServiceError::NoResult) => Vec::new(),
+        Err(_) => return HttpResponse::InternalServerError().reason("1").finish(),
+    };
+
+    if !members.iter().map(|m| m.user_id).any(|id| id == user_id) {
+        return HttpResponse::Unauthorized().reason("User is not part of the room").finish()
+    }
+
+    // Record new message
+    match db_service.chat_room_send_message(&user_id, &body).await {
+        Ok(()) => HttpResponse::Ok().finish(),
+        Err(_) => HttpResponse::InternalServerError().reason("2").finish(),
+    }
+}
 
 // Util
 

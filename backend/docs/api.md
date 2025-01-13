@@ -21,6 +21,11 @@ Manage chat room (`/chat`)
 * [`GET  /chat/{room_id}/members`](#get-room_idmembers)
 * [`POST /chat/{room_id}/manage-user`](#post-room_idmanage-user)
 
+Chat interaction (`/chat`)
+
+* [`GET  /chat/{room_id}/{offset}/{limit}`](#get-chatroom_idoffsetlimit)
+* [`POST /chat`](#post-chat)
+
 ### GET /health
 
 Poll the server to see if it is running.
@@ -191,6 +196,61 @@ The logged in user must be a member of the room that the request specifies. I.O.
         * Invalid token format.
         * Bad `username` provided in JSON payload.
         * Bad `action` provided in JSON payload.
+    * HTTP 401 Unauthorized:
+        * The provided authentication token does not map to a user.
+        * The logged in user is not a member of the specified room.
+    * HTTP 500 Internal Server Error: An error has occurred.
+
+### GET /chat/{room_id}/{offset}/{limit}
+Retrieve a list of messages from the chat room specified by `room_id`. The returned list of messages are a window/slice of messages in the chat room. The window/slice begins at the `offset` parameter position, and contains/has its size defined by the `limit` parameter. The most recent message in the chat room has an offset of 0.
+
+Note: The oldest message in the specified window/slice is first in the response, with the newest/latest message being at the end of the window/slice.
+
+* Authentication: Bearer
+* Expected JSON payload: None
+* Possible responses:
+    * HTTP 200 OK:
+    ```json
+    {
+        "messages": [
+            {
+                "id": <message id>,
+                "room_id": <room id>,
+                "sender_id": <sender user id>,
+                "body": <message body/text>,
+                "time_sent": <date & time in UTC time>
+            },
+            {
+                ...
+            },
+            ...
+        ]
+    }
+    ```
+    * HTTP 400 Bad Request:
+        * Invalid token format.
+        * The limit parameter was 0 (describing a window/slice of size 0).
+    * HTTP 401 Unauthorized:
+        * The provided authentication token does not map to a user.
+        * The logged in user is not a member of the specified room.
+    * HTTP 500 Internal Server Error: An error has occurred.
+
+### POST /chat
+Send a message in a chat room.
+
+* Authentication: Bearer
+* Expected JSON payload:
+```json
+{
+    "room_id": <room id>,
+    "body": <body text>
+}
+```
+* Possible responses:
+    * HTTP 200 OK: Success
+    * HTTP 400 Bad Request:
+        * Invalid token format.
+        * Extra fields were populated.
     * HTTP 401 Unauthorized:
         * The provided authentication token does not map to a user.
         * The logged in user is not a member of the specified room.
