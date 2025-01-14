@@ -3,11 +3,11 @@ use std::str::FromStr;
 use const_format::formatcp;
 use serde_json::json;
 
-use common::{AccountPasswordChange, AccountRequest, ChatMessage, ChatRoomManageUser, ChatRoomName};
+use common::{AccountPasswordChange, AccountRequest, ChatMessage, ChatRoomManageUser, ChatRoomName, UserAssociationUpdate};
 
 use actix_web::{
     get, post, put, web::{
-        Data, Json, Path, ServiceConfig
+        Data, Json, Path, Query, ServiceConfig
     }, HttpResponse
 };
 use actix_web_httpauth::extractors::bearer::BearerAuth;
@@ -24,7 +24,7 @@ use argon2::{
 };
 use uuid::Uuid;
 
-use crate::{database::DatabaseServiceError, DatabaseService};
+use crate::{database::DatabaseServiceError, models::UserSearchParam, DatabaseService};
 
 const MIN_USERNAME_LEN: usize = 4;
 const MAX_USERNAME_LEN: usize = 64;
@@ -53,6 +53,9 @@ pub fn config(config: &mut ServiceConfig) -> () {
         // Chat interaction
         .service(chat_get_messages)
         .service(chat_send_message)
+        // User interaction
+        .service(user_search_global)
+        .service(user_association)
     );
 }
 
@@ -504,6 +507,58 @@ async fn chat_send_message(
         Err(_) => HttpResponse::InternalServerError().reason("2").finish(),
     }
 }
+
+// User interaction
+
+#[get("/users")]
+async fn user_search_global(
+    db_service: Data<DatabaseService>,
+    bearer: BearerAuth,
+    query: Query<UserSearchParam>
+) -> HttpResponse {
+    // Search must contain some text
+    if query.username.is_empty() {
+        return HttpResponse::BadRequest().reason("username query cannot be empty").finish()
+    }
+    
+    // User must be logged in to search. They may be blocked
+    let user_id = match token_to_user_id(&db_service, bearer.token()).await {
+        Ok(id) => id,
+        Err(response) => return response,
+    };
+
+    match db_service.user_search_global(&user_id, &query.username).await {
+        Ok(result) => HttpResponse::Ok().json(json!({"result": result})),
+        Err(_) => HttpResponse::InternalServerError().reason("1").finish(),
+    }
+}
+
+#[post("/users")]
+async fn user_association(
+    db_service: Data<DatabaseService>,
+    bearer: BearerAuth,
+    body: Json<UserAssociationUpdate>
+) -> HttpResponse {
+    // Find requesting user id
+    let user_id = match token_to_user_id(&db_service, bearer.token()).await {
+        Ok(id) => id,
+        Err(response) => return response,
+    };
+
+    use common::UserAssociationType::*;
+    let update_result = match body.association_type {
+        Friend => db_service.user_association_set_friend(&user_id, &body.other_user_id).await,
+        Block  => db_service.user_association_set_block(&user_id, &body.other_user_id).await,
+        Remove => db_service.user_association_delete(&user_id, &body.other_user_id).await,
+    };
+
+    match update_result {
+        Ok(()) => HttpResponse::Ok().json(json!({"status": "success"})),
+        Err(DatabaseServiceError::NoResult) => HttpResponse::Ok().json(json!({"status": "no change"})),
+        Err(_) => HttpResponse::InternalServerError().reason("1").finish()
+    }
+}
+
 
 // Util
 

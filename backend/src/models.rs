@@ -12,3 +12,8 @@ pub struct DBRoomMember {
     pub(crate) user_id: u64,
     pub(crate) username: String
 }
+
+#[derive(Debug, serde::Deserialize)]
+pub struct UserSearchParam {
+    pub username: String
+}

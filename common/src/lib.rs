@@ -36,11 +36,30 @@ pub struct ChatRoomManageUser {
     pub action: ChatRoomManageUserAction
 }
 
-#[derive(Serialize, Deserialize, Debug)] 
+#[derive(Serialize, Deserialize, Debug)]
 pub struct ChatMessage {
     pub id: Option<u64>,  // is 2^64 enough? also in schema
     pub room_id: u64,
     pub sender_id: Option<u64>,
     pub body: String,
     pub time_sent: Option<DateTime<Utc>>
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct UserInfo {
+    pub id: u64,
+    pub username: String
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub enum UserAssociationType {
+    Friend,
+    Block,
+    Remove
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct UserAssociationUpdate {
+    pub other_user_id: u64,
+    pub association_type: UserAssociationType
 }

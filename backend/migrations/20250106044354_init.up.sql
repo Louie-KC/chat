@@ -15,6 +15,15 @@ CREATE TABLE UserToken (
     FOREIGN KEY (user_id) REFERENCES User(id)
 );
 
+CREATE TABLE UserAssociation (
+    user_id BIGINT UNSIGNED NOT NULL,
+    other_user_id BIGINT UNSIGNED NOT NULL,
+    association ENUM("FRIEND", "BLOCK"),
+    PRIMARY KEY (user_id, other_user_id),
+    FOREIGN KEY (user_id) REFERENCES User(id),
+    FOREIGN KEY (other_user_id) REFERENCES User(id)
+);
+
 CREATE TABLE Room (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     name VARCHAR(128) NOT NULL,

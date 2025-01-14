@@ -6,7 +6,7 @@ use sqlx::{
 use sqlx::mysql::MySqlPoolOptions;
 use uuid::Uuid;
 
-use common::{ChatMessage, ChatRoom};
+use common::{ChatMessage, ChatRoom, UserInfo};
 
 use crate::models::{DBUser, DBRoomMember};
 
@@ -344,7 +344,7 @@ impl DatabaseService {
         if message.id.is_some() || message.time_sent.is_some() {
             warn!("chat_room_send_message invoked with populated Option fields: {:?}", message);
         }
-        
+
         let qr = sqlx::query!(
             "INSERT INTO Message (room_id, sender_id, body)
             VALUES (?, ?, ?)",
@@ -361,4 +361,90 @@ impl DatabaseService {
         }
     }
 
+    /// Retrieve a list of users with `search_term` in their username.
+    /// 
+    /// Users that have blocked the user with the provided `user_id` are
+    /// excluded from the result. This `user_id` is intended to be of the
+    /// user making the search.
+    pub async fn user_search_global(&self, user_id: &u64, search_term: &str) -> DBResult<Vec<UserInfo>> {
+        let qr = sqlx::query_as!(
+            UserInfo,
+            "SELECT id, username
+            FROM User
+            WHERE username LIKE ?
+            AND id NOT IN (
+                SELECT user_id
+                FROM UserAssociation
+                WHERE other_user_id = ?
+                AND association = 'BLOCK'
+            )",
+            format!("%{}%", search_term),
+            user_id)
+            .fetch_all(&self.conn_pool)
+            .await;
+
+        match qr {
+            Ok(users) => Ok(users),
+            Err(e) => Err(e.into()),
+        }
+    }
+
+    /// Associate the users with `user_id` and `other_id` as friends in one
+    /// direction.
+    /// 
+    /// `user_id --friends with--> other_id`.
+    pub async fn user_association_set_friend(&self, user_id: &u64, other_id: &u64) -> DBResult<()> {
+        let qr = sqlx::query!("
+            INSERT INTO UserAssociation (user_id, other_user_id, association)
+            VALUES (?, ?, 'FRIEND')
+            ON DUPLICATE KEY UPDATE association = 'FRIEND'",
+            user_id,
+            other_id)
+            .execute(&self.conn_pool)
+            .await;
+
+        match qr {
+            Ok(r) if r.rows_affected() > 0 => Ok(()),
+            Ok(_)  => Err(DatabaseServiceError::NoResult),
+            Err(e) => Err(e.into()),
+        }
+    }
+
+    /// Set the association of `user_id` to `other_id` as a blocked association.
+    /// 
+    /// `user_id --has blocked--> other_id`.
+    pub async fn user_association_set_block(&self, user_id: &u64, other_id: &u64) -> DBResult<()> {
+        let qr = sqlx::query!("
+            INSERT INTO UserAssociation (user_id, other_user_id, association)
+            VALUES (?, ?, 'BLOCK')
+            ON DUPLICATE KEY UPDATE association = 'BLOCK'",
+            user_id,
+            other_id)
+            .execute(&self.conn_pool)
+            .await;
+
+        match qr {
+            Ok(r) if r.rows_affected() > 0 => Ok(()),
+            Ok(_)  => Err(DatabaseServiceError::NoResult),
+            Err(e) => Err(e.into()),
+        }
+    }
+
+    /// Remove any association that exists from `user_id` to `other_id`.
+    pub async fn user_association_delete(&self, user_id: &u64, other_id: &u64) -> DBResult<()> {
+        let qr = sqlx::query!(
+            "DELETE FROM UserAssociation
+            WHERE user_id = ?
+            AND other_user_id = ?",
+            user_id,
+            other_id)
+            .execute(&self.conn_pool)
+            .await;
+
+        match qr {
+            Ok(r) if r.rows_affected() > 0 => Ok(()),
+            Ok(_)  => Err(DatabaseServiceError::NoResult),
+            Err(e) => Err(e.into()),
+        }
+    }
 }
