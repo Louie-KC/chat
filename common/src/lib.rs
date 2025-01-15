@@ -26,8 +26,18 @@ pub struct ChatRoom {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
+pub struct ChatRoomList {
+    pub rooms: Vec<ChatRoom>
+}
+
+#[derive(Serialize, Deserialize, Debug)]
 pub struct ChatRoomName {
     pub room_name: String,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct UserList {
+    pub members: Vec<UserInfo>
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -49,6 +59,11 @@ pub struct ChatMessage {
     pub sender_id: Option<u64>,
     pub body: String,
     pub time_sent: Option<DateTime<Utc>>
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ChatMessageList {
+    pub messages: Vec<ChatMessage>
 }
 
 #[derive(Serialize, Deserialize, Debug)]

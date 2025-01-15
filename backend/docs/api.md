@@ -129,7 +129,16 @@ Retrieve a list of rooms that the logged in user are members of.
     * HTTP 200 OK:
     ```json
     {
-        rooms: [<id and name>, ...]
+        rooms: [
+            {
+                "id": <room id>,
+                "name": <room name>
+            },
+            {
+                ...
+            },
+            ...
+        ]
     }
     ```
     * HTTP 400 Bad Request: Invalid Bearer token format.
@@ -183,7 +192,21 @@ List the usernames of members in the room specified by the `room_id` parameter. 
 * Authentication: Bearer
 * Expected JSON payload: None
 * Possible responses:
-    * HTTP 200 OK: Success
+    * HTTP 200 OK:
+    ```json
+    {
+        "members": [
+            {
+                "id": <user id>,
+                "username": <username>
+            },
+            {
+                ...
+            },
+            ...
+        ]
+    }
+    ```
     * HTTP 400 Bad Request: Invalid token format
     * HTTP 401 Unauthorized:
         * The provided authentication token does not map to a user.
