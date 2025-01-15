@@ -69,13 +69,13 @@ impl DatabaseService {
     /*  User management  */
 
     /// Determine if a User record exists in the connected database with the
-    /// provided `username`.
+    /// provided `username`. This check if not case sensitive.
     pub async fn user_exists(&self, username: &str) -> DBResult<bool> {
         let qr = sqlx::query!(
             "SELECT COUNT(*) as count
             FROM User
-            WHERE username = ?",
-            username)
+            WHERE UPPER(username) = ?",
+            username.to_ascii_uppercase())
             .fetch_one(&self.conn_pool)
             .await;
 
@@ -101,14 +101,14 @@ impl DatabaseService {
     }
 
     /// Retrieve the User record from the connected database with the provided
-    /// `username`.
+    /// `username`. The underlying search is not case sensitive.
     pub async fn user_get_by_username(&self, username: &str) -> DBResult<DBUser> {
         let qr = sqlx::query_as!(
             DBUser,
             "SELECT *
             FROM User
-            WHERE username = ?;",
-            username)
+            WHERE UPPER(username) = ?;",
+            username.to_ascii_uppercase())
             .fetch_one(&self.conn_pool)
             .await;
 
@@ -116,7 +116,7 @@ impl DatabaseService {
     }
 
     /// Retrieve the User record from the connected database with the provided
-    /// `username`.
+    /// `user_id`.
     pub async fn user_get_by_id(&self, user_id: &u64) -> DBResult<DBUser> {
         let qr = sqlx::query_as!(
             DBUser,
