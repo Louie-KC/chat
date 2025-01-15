@@ -3,7 +3,7 @@ use std::str::FromStr;
 use const_format::formatcp;
 use serde_json::json;
 
-use common::{AccountPasswordChange, AccountRequest, ChatMessage, ChatRoomManageUser, ChatRoomName, UserAssociationUpdate};
+use common::{AccountPasswordChange, AccountRequest, ChatMessage, ChatRoomManageUser, ChatRoomName, LoginResponse, UserAssociationUpdate};
 
 use actix_web::{
     get, post, put, web::{
@@ -164,7 +164,10 @@ async fn login(
     }
 
     match token_set_result {
-        Ok(()) => HttpResponse::Ok().json(json!({"token": token.to_string()})),
+        Ok(()) => HttpResponse::Ok().json(LoginResponse {
+            user_id: db_user_data.id,
+            token: token.to_string()
+        }),
         Err(_) => HttpResponse::InternalServerError().reason("3").finish(),
     }
 }
