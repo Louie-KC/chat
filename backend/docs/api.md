@@ -11,6 +11,7 @@ Manage account (`/account`)
 * [`POST /account/register`](#post-accountregister)
 * [`POST /account/login`](#post-accountlogin)
 * [`POST /account/change-password`](#post-accountchange-password)
+* [`POST /account/logout`](#post-accountlogout)
 * [`POST /account/clear-tokens`](#post-accountclear-tokens)
 
 Manage chat room (`/chat`)
@@ -52,7 +53,7 @@ Create a new user account.
     * HTTP 500 Internal Server Error: An error has occurred.
 
 ### POST /account/login
-Login to an existing user account, generating and returning an authentication token on success. 
+Login to an existing user account, generating and returning an authentication token and the logged in user id on success.
 
 Note: The returned token is used in all requests where Bearer authentication is required.
 
@@ -68,6 +69,7 @@ Note: The returned token is used in all requests where Bearer authentication is 
     * HTTP 200 OK: Success
     ```json
     {
+        "user_id": <user id>,
         "token": <auth token>
     }
     ```
@@ -94,6 +96,17 @@ Change the password of an existing user account.
         * Incorrect old password.
         * Invalid Bearer token format.
     * HTTP 401 Unauthorized: The provided authentication token does not map to a user.
+    * HTTP 500 Internal Server Error: An error has occurred.
+
+### POST /account/logout
+Logout of the currently logged in account by invalidating the provided token.
+
+* Authentication: Bearer
+* Expected JSON payload: None
+* Possible responses:
+    * HTTP 200 OK: Success
+    * HTTP 400 Bad Request: Bad token format.
+    * HTTP 401 Unauthorized: The provided token does not map to a logged in user.
     * HTTP 500 Internal Server Error: An error has occurred.
 
 ### POST /account/clear-tokens

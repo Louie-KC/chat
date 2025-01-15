@@ -43,7 +43,8 @@ pub fn config(config: &mut ServiceConfig) -> () {
         .service(register)
         .service(login)
         .service(change_password)
-        .service(clear_tokens)
+        .service(clear_token)
+        .service(clear_all_tokens)
         // Chat room management
         .service(get_room_list)
         .service(create_chat_room)
@@ -231,8 +232,28 @@ pub async fn change_password(
     }
 }
 
+#[post("/account/logout")]
+pub async fn clear_token(
+    db_service: Data<DatabaseService>,
+    bearer: BearerAuth
+) -> HttpResponse {
+    // Identify requesting user
+    let user_id = match token_to_user_id(&db_service, bearer.token()).await {
+        Ok(id) => id,
+        Err(response) => return response,
+    };
+
+    // Checked unwrap as function called above ensures the token is valid
+    let token = Uuid::from_str(bearer.token()).unwrap();
+
+    match db_service.user_remove_token(&user_id, &token).await {
+        Ok(()) => HttpResponse::Ok().finish(),
+        Err(_) => HttpResponse::InternalServerError().finish(),
+    }
+}
+
 #[post("/account/clear-tokens")]
-pub async fn clear_tokens(
+pub async fn clear_all_tokens(
     db_service: Data<DatabaseService>,
     bearer: BearerAuth
 ) -> HttpResponse {

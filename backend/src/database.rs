@@ -163,6 +163,22 @@ impl DatabaseService {
         }
     }
 
+    /// Remove the provided `token` from mapping to `user_id`, effectively
+    /// logging out the user from their current client.
+    pub async fn user_remove_token(&self, user_id: &u64, token: &Uuid) -> DBResult<()> {
+        let qr = sqlx::query!("DELETE FROM UserToken WHERE user_id = ? AND token = ?",
+            user_id,
+            token.to_string())
+            .execute(&self.conn_pool)
+            .await;
+
+        match qr {
+            Ok(r) if r.rows_affected() > 0 => Ok(()),
+            Ok(_)  => Err(DatabaseServiceError::NoResult),
+            Err(e) => Err(e.into())
+        }
+    }
+
     /// Remove all tokens associated with the provided `user_id`.
     pub async fn user_clear_tokens_by_id(&self, user_id: &u64) -> DBResult<()> {
         let qr = sqlx::query!("DELETE FROM UserToken WHERE user_id = ?", user_id)
