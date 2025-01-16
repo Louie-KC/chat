@@ -1,0 +1,8 @@
+[package]
+name = "frontend"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+awc = "3.5.1"
+common = { version = "0.1.0", path = "../common" }
