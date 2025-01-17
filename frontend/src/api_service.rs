@@ -1,4 +1,3 @@
-use awc::http::StatusCode;
 use common::{
     AccountPasswordChange,
     AccountRequest,
@@ -8,15 +7,17 @@ use common::{
     LoginResponse, UserList
 };
 
+use reqwest::{self, StatusCode};
+
 struct ApiService {
     base_uri: String,
-    client: awc::Client
+    client: reqwest::Client
 }
 
 impl ApiService {
 
     pub fn new(base_uri: String) -> Self {
-        ApiService { base_uri: base_uri, client: awc::Client::default() }
+        ApiService {base_uri: base_uri, client: reqwest::Client::new() }
     }
 
     // Account management    
@@ -25,7 +26,8 @@ impl ApiService {
 
         let response = self.client
             .post(endpoint)
-            .send_json(&details)
+            .json(&details)
+            .send()
             .await;
 
         match response {
@@ -39,10 +41,11 @@ impl ApiService {
     
         let response = self.client
             .post(endpoint)
-            .send_json(&details)
+            .json(&details)
+            .send()
             .await;
 
-        let mut response = match response {
+        let response = match response {
             Ok(res) => res,
             Err(_) => return Err(()),
         };
@@ -59,7 +62,8 @@ impl ApiService {
         let response = self.client
             .post(endpoint)
             .bearer_auth(token)
-            .send_json(&details)
+            .json(&details)
+            .send()
             .await;
         
         match response {
@@ -109,7 +113,7 @@ impl ApiService {
             .send()
             .await;
     
-        let mut response = match response {
+        let response = match response {
             Ok(res) => res,
             Err(_) => return Err(()),
         };
@@ -128,7 +132,8 @@ impl ApiService {
         let response = self.client
             .post(endpoint)
             .bearer_auth(token)
-            .send_json(&body)
+            .json(&body)
+            .send()
             .await;
     
         match response {
@@ -145,7 +150,8 @@ impl ApiService {
         let response = self.client
             .put(endpoint)
             .bearer_auth(token)
-            .send_json(&body)
+            .json(&body)
+            .send()
             .await;
         
         match response {
@@ -163,7 +169,7 @@ impl ApiService {
             .send()
             .await;
     
-        let mut response = match response {
+        let response = match response {
             Ok(res) => res,
             Err(_) => return Err(())
         };
@@ -180,7 +186,8 @@ impl ApiService {
         let response = self.client
             .put(endpoint)
             .bearer_auth(token)
-            .send_json(&action)
+            .json(&action)
+            .send()
             .await;
     
         match response {

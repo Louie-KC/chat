@@ -4,5 +4,6 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-awc = "3.5.1"
 common = { version = "0.1.0", path = "../common" }
+reqwest = { version = "0.12.12", features = [ "json" ] }
+yew = { version = "0.21.0", features = [ "csr" ] }
