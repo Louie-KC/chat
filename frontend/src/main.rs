@@ -1,15 +1,10 @@
+mod app;
 mod api_service;
+mod components;
+mod pages;
+mod router;
 
-use yew::prelude::*;
-
-#[function_component]
-fn App() -> Html {
-    html! {
-        <>
-            <h1>{ "Chat Front End (Yew)" }</h1>
-        </>
-    }
-}
+use app::App;
 
 fn main() {
     yew::Renderer::<App>::new().render();
