@@ -4,6 +4,7 @@ mod models;
 
 use dotenv::dotenv;
 
+use actix_cors::Cors;
 use actix_web::{
     App,
     HttpServer,
@@ -34,6 +35,7 @@ async fn main() -> std::io::Result<()> {
     let app = HttpServer::new(move ||
         App::new()
             .wrap(Logger::new("%a \"%r\" %s %b %T"))
+            .wrap(Cors::permissive())
             .configure(handler::config)
             .app_data(db_service_data.clone())
             .app_data(argon2_data.clone())
