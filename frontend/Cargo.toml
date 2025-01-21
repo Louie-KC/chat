@@ -8,6 +8,8 @@ common = { version = "0.1.0", path = "../common" }
 gloo = "0.11.0"
 reqwest = { version = "0.12.12", features = [ "json" ] }
 wasm-bindgen = "0.2.100"
+wasm-bindgen-futures = "0.4.50"
 web-sys = { version = "0.3.77", features = ["HtmlInputElement"] }
 yew = { version = "0.21.0", features = [ "csr" ] }
 yew-router = "0.18.0"
+yewdux = "0.10.0"
