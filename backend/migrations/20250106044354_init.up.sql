@@ -10,7 +10,8 @@ CREATE TABLE User (
 CREATE TABLE UserToken (
     token CHAR(36),
     user_id BIGINT UNSIGNED NOT NULL,
-    time_set DATETIME DEFAULT NOW(),
+    user_agent TEXT NOT NULL,
+    time_set TIMESTAMP NOT NULL DEFAULT NOW(),
     PRIMARY KEY (token),
     FOREIGN KEY (user_id) REFERENCES User(id)
 );

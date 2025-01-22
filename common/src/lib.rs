@@ -20,6 +20,13 @@ pub struct LoginResponse {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
+pub struct LoginTokenInfo {
+    pub user_agent: String,
+    pub time_set: DateTime<Utc>,
+    pub is_requester: bool
+}
+
+#[derive(Serialize, Deserialize, Debug)]
 pub struct ChatRoom {
     pub id: u64,
     pub name: String,

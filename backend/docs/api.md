@@ -12,6 +12,7 @@ Manage account (`/account`)
 * [`POST /account/login`](#post-accountlogin)
 * [`POST /account/change-password`](#post-accountchange-password)
 * [`POST /account/logout`](#post-accountlogout)
+* [`GET  /account/tokens`](#get-accounttokens)
 * [`POST /account/clear-tokens`](#post-accountclear-tokens)
 
 Manage chat room (`/chat`)
@@ -107,6 +108,30 @@ Logout of the currently logged in account by invalidating the provided token.
     * HTTP 200 OK: Success
     * HTTP 400 Bad Request: Bad token format.
     * HTTP 401 Unauthorized: The provided token does not map to a logged in user.
+    * HTTP 500 Internal Server Error: An error has occurred.
+
+### GET /account/tokens
+Retrieve a list of information about the authentication tokens associated with the requesting user account. The token used by the requester will have a flag set.
+
+* Authentication: Bearer
+* Expected JSON payload: None
+* Possible responses:
+    * HTTP 200 OK: 
+    ```json
+    [
+        {
+            "user_agent": <current user agent for token>,
+            "time_set": <time token generated>,
+            "is_requester": <true or false>
+        },
+        {
+            ...
+        },
+        ...
+    ]
+    ```
+    * HTTP 400 Bad Request: Invalid Bearer token format.
+    * HTTP 401 Unauthorized: The provided authentication token does not map to a user.
     * HTTP 500 Internal Server Error: An error has occurred.
 
 ### POST /account/clear-tokens

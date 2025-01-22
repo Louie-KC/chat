@@ -6,9 +6,9 @@ use sqlx::{
 use sqlx::mysql::MySqlPoolOptions;
 use uuid::Uuid;
 
-use common::{ChatMessage, ChatRoom, UserInfo};
+use common::{ChatMessage, ChatRoom, LoginTokenInfo, UserInfo};
 
-use crate::models::{DBUser, DBRoomMember};
+use crate::models::{DBAuthInfo, DBRoomMember, DBUser};
 
 type DBResult<T> = Result<T, DatabaseServiceError>;
 
@@ -132,11 +132,14 @@ impl DatabaseService {
 
     /// Create an entry in the UserToken table, mapping an auth `token` to a
     /// `user_id` granting authorization.
-    pub async fn user_set_token(&self, user_id: &u64, token: &Uuid) -> DBResult<()> {
+    pub async fn user_set_token(&self, user_id: &u64, token: &Uuid, user_agent: &str) -> DBResult<()> {
         let qr = sqlx::query!(
-            "INSERT INTO UserToken (token, user_id) VALUES (?, ?);",
+            "INSERT INTO UserToken (token, user_id, user_agent) VALUES (?, ?, ?)
+            ON DUPLICATE KEY UPDATE user_agent = ?;",
             token.to_string(),
-            user_id)
+            user_id,
+            user_agent,
+            user_agent)
             .execute(&self.conn_pool)
             .await;
 
@@ -176,6 +179,27 @@ impl DatabaseService {
             Ok(r) if r.rows_affected() > 0 => Ok(()),
             Ok(_)  => Err(DatabaseServiceError::NoResult),
             Err(e) => Err(e.into())
+        }
+    }
+
+    /// Retrieve information about the associated auth tokens for a provided `user_id`.
+    /// `token` is used to determine which of the returned tokens is a made by the
+    /// requesting user.
+    pub async fn user_get_associated_tokens(&self, user_id: &u64, token: &Uuid) -> DBResult<Vec<DBAuthInfo>> {
+        let qr = sqlx::query_as!(
+            DBAuthInfo,
+            "SELECT user_agent, time_set, IF(token = ?, true, false) as 'is_requester: _'
+            FROM UserToken
+            WHERE user_id = ?
+            ORDER BY time_set",
+            token.to_string(),
+            user_id)
+            .fetch_all(&self.conn_pool)
+            .await;
+
+        match qr {
+            Ok(info) => Ok(info),
+            Err(e) => Err(e.into()),
         }
     }
 

@@ -3,12 +3,18 @@ use std::str::FromStr;
 use const_format::formatcp;
 use serde_json::json;
 
-use common::{AccountPasswordChange, AccountRequest, ChatMessage, ChatMessageList, ChatRoomList, ChatRoomManageUser, ChatRoomName, LoginResponse, UserAssociationUpdate, UserInfo, UserList};
+use common::{AccountPasswordChange, AccountRequest, ChatMessage, ChatMessageList, ChatRoomList, ChatRoomManageUser, ChatRoomName, LoginResponse, LoginTokenInfo, UserAssociationUpdate, UserInfo, UserList};
 
 use actix_web::{
-    get, post, put, web::{
+    get,
+    post,
+    put,
+    web::{
         Data, Json, Path, Query, ServiceConfig
-    }, HttpResponse
+    },
+    http::header,
+    HttpRequest,
+    HttpResponse,
 };
 use actix_web_httpauth::extractors::bearer::BearerAuth;
 
@@ -44,6 +50,7 @@ pub fn config(config: &mut ServiceConfig) -> () {
         .service(login)
         .service(change_password)
         .service(clear_token)
+        .service(get_all_tokens)
         .service(clear_all_tokens)
         // Chat room management
         .service(get_room_list)
@@ -77,7 +84,7 @@ async fn health(db_service: Data<DatabaseService>) -> HttpResponse {
 async fn register(
     db_service: Data<DatabaseService>,
     argon2: Data<Argon2<'_>>,
-    body: Json<AccountRequest>
+    body: Json<AccountRequest>,
 ) -> HttpResponse {
     // Input validation
     if MIN_USERNAME_LEN > body.username.len() || body.username.len() > MAX_USERNAME_LEN {
@@ -119,7 +126,9 @@ async fn register(
 async fn login(
     db_service: Data<DatabaseService>,
     argon2: Data<Argon2<'_>>,
-    body: Json<AccountRequest>
+    req: HttpRequest,
+    body: Json<AccountRequest>,
+    // req: HttpRequest
 ) -> HttpResponse {
     // Input validation
     if MIN_USERNAME_LEN > body.username.len() || body.username.len() > MAX_USERNAME_LEN {
@@ -129,7 +138,6 @@ async fn login(
         return HttpResponse::BadRequest().reason(BAD_PASSWORD_REASON).finish()
     }
 
-    // Check if username is already taken
     let username_invalid = body.username.chars().any(|c| !c.is_ascii_alphanumeric());
     let password_invalid = body.password.chars().any(|c| !c.is_ascii_alphanumeric());
     if username_invalid || password_invalid {
@@ -154,6 +162,13 @@ async fn login(
     };
 
     std::mem::drop(stored_hash);
+    
+    // Get user-agent header
+    let headers = req.headers();
+    let user_agent = match headers.get(header::USER_AGENT) {
+        Some(data) => data.to_str().unwrap_or("Unknown client"),
+        None => "Unknown client"
+    };
 
     // Generate and store token before sending back to client
     // In the very unlikely chance a UUID V4 clash occurs, re-try
@@ -161,7 +176,7 @@ async fn login(
     let mut token_set_result = Err(DatabaseServiceError::KeyAlreadyExists);
     while let Err(DatabaseServiceError::KeyAlreadyExists) = token_set_result {
         token = Uuid::new_v4();
-        token_set_result = db_service.user_set_token(&db_user_data.id, &token).await;
+        token_set_result = db_service.user_set_token(&db_user_data.id, &token, user_agent).await;
     }
 
     match token_set_result {
@@ -249,6 +264,42 @@ pub async fn clear_token(
     match db_service.user_remove_token(&user_id, &token).await {
         Ok(()) => HttpResponse::Ok().finish(),
         Err(_) => HttpResponse::InternalServerError().finish(),
+    }
+}
+
+#[get("/account/tokens")]
+pub async fn get_all_tokens(
+    db_service: Data<DatabaseService>,
+    bearer: BearerAuth,
+    req: HttpRequest
+) -> HttpResponse {
+    // Identify requesting user
+    let user_id = match token_to_user_id(&db_service, bearer.token()).await {
+        Ok(id) => id,
+        Err(response) => return response,
+    };
+
+    // Checked unwrap, valid per above match
+    let token = Uuid::from_str(bearer.token()).unwrap();
+
+    // Get user-agent header
+    let headers = req.headers();
+    let user_agent = match headers.get(header::USER_AGENT) {
+        Some(data) => data.to_str().unwrap_or("Unknown client"),
+        None => "Unknown client"
+    };
+
+    // Update user-agent for current token
+    if let Err(_) = db_service.user_set_token(&user_id, &token, user_agent).await {
+        return HttpResponse::InternalServerError().reason("1").finish()
+    }
+
+    match db_service.user_get_associated_tokens(&user_id, &token).await {
+        Ok(db_info) => {
+            let info = db_info.iter().map(Into::<LoginTokenInfo>::into).collect::<Vec<_>>();
+            HttpResponse::Ok().json(info)
+        },
+        Err(_) => HttpResponse::InternalServerError().reason("2").finish(),
     }
 }
 
