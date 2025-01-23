@@ -22,7 +22,14 @@ enum LoginStatus {
 pub fn login_page() -> Html {
     // Global controls & state
     let navigator = use_navigator().unwrap();
-    let (_, dispatch) = use_store::<Store>();
+    let (store, dispatch) = use_store::<Store>();
+
+    // Redirect to Home if already logged in
+    if store.token.is_some() {
+        return html! {
+            <Redirect<Route> to={Route::Home}/>
+        }
+    }
 
     // Component state
     let status = use_state(|| LoginStatus::NotAttempted);

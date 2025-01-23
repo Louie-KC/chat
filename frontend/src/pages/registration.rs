@@ -3,8 +3,10 @@ use std::ops::Deref;
 use common::AccountRequest;
 use gloo::console::log;
 use yew::prelude::*;
+use yew_router::prelude::*;
+use yewdux::use_store;
 
-use crate::{api_service, components::molecules::registration_form::RegistrationForm};
+use crate::{api_service, components::molecules::registration_form::RegistrationForm, router::Route, store::Store};
 
 #[derive(PartialEq)]
 enum RegisterStatus {
@@ -15,6 +17,16 @@ enum RegisterStatus {
 
 #[function_component(RegistrationPage)]
 pub fn registration_page() -> Html {
+    // Global state
+    let (store, _) = use_store::<Store>();
+
+    // Redirect to Home if already logged in
+    if store.token.is_some() {
+        return html! {
+            <Redirect<Route> to={Route::Home}/>
+        }
+    }
+
     // Component state
     let status = use_state(|| RegisterStatus::NotAttempted);
     let render_status = status.clone();

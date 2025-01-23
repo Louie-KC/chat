@@ -12,6 +12,13 @@ pub fn account_management_page() -> Html {
     let navigator = use_navigator().unwrap();
     let (store, dispatch) = use_store::<Store>();
 
+    // Redirect to Home if not logged in
+    if store.token.is_none() {
+        return html! {
+            <Redirect<Route> to={Route::Home}/>
+        }
+    }
+
     // Component state
     let token_info = use_state(|| Vec::<LoginTokenInfo>::new());
 
