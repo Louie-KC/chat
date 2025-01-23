@@ -1,5 +1,8 @@
+use std::str::FromStr;
+
 use common::AccountRequest;
 use gloo::console::log;
+use uuid::Uuid;
 use yew::prelude::*;
 use yew_router::prelude::*;
 use yewdux::prelude::*;
@@ -33,12 +36,20 @@ pub fn login_page() -> Html {
             wasm_bindgen_futures::spawn_local(async move {
                 match api_service::account_login(&user).await {
                     Ok(response) => {
-                        dispatch.reduce_mut(move |store| {
-                            store.username = Some(user.username);
-                            store.user_id = Some(response.user_id);
-                            store.token = Some(response.token);
-                        });
-                        navigator.push(&Route::Home);
+                        match Uuid::from_str(&response.token) {
+                            Ok(token) => {
+                                dispatch.reduce_mut(move |store| {
+                                    store.username = Some(user.username);
+                                    store.user_id = Some(response.user_id);
+                                    store.token = Some(token);
+                                });
+                                navigator.push(&Route::Home);
+                            },
+                            Err(_) => {
+                                log!("The stored token is in an invalid format");
+                                status.set(LoginStatus::Failed);
+                            },
+                        }
                     },
                     Err(reason) => {
                         log!(format!("fail reason: {}", reason));
