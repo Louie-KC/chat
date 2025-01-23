@@ -14,6 +14,8 @@ pub fn NavBar() -> Html {
             if store.token.is_none() {
                 <Link<Route> to={Route::AccountRegister}> {"Register"} </Link<Route>>
                 <Link<Route> to={Route::AccountLogin}> {"Login"} </Link<Route>>
+            } else {
+                <Link<Route> to={Route::AccountManage}> {"Manage Account"} </Link<Route>>
             }
         </nav>
     }

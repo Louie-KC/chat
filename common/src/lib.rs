@@ -19,7 +19,7 @@ pub struct LoginResponse {
     pub token: String
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct LoginTokenInfo {
     pub user_agent: String,
     pub time_set: DateTime<Utc>,
