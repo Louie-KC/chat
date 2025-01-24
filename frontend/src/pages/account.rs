@@ -62,6 +62,33 @@ pub fn account_management_page() -> Html {
         })
     };
 
+    let on_logout = {
+        let navigator = navigator.clone();
+        let store = store.clone();
+        let dispatch = dispatch.clone();
+        Callback::from(move |_: MouseEvent| {
+            let navigator = navigator.clone();
+            let store = store.clone();
+            let dispatch = dispatch.clone();
+            if let Some(token) = store.token {
+                wasm_bindgen_futures::spawn_local(async move {
+                    if let Ok(_) = api_service::account_logout(&token).await {
+                        dispatch.reduce_mut(move |store| {
+                            store.username = None;
+                            store.user_id = None;
+                            store.token = None;
+                        });
+                        navigator.push(&Route::Home);
+                    } else {
+                        log!("Logout request failed");
+                    }
+                });
+            } else {
+                log!("Logout request failed - Missing auth token");
+            }
+        })
+    };
+
     let token_children_info: Vec<Html> = token_info.iter()
         .map(|info| html! { <TokenInfo info={info.clone()}/>})
         .collect();
@@ -70,6 +97,8 @@ pub fn account_management_page() -> Html {
         <>
             <h>{"Currently logged in devices/tokens"}</h>
             <ListView children={token_children_info} />
+            <Button label={"Log out"} on_click={Some(on_logout)} />
+            <br />
             <Button label={"Log out of all devices"} on_click={Some(on_clear_tokens)} />
         </>
     }
