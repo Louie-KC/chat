@@ -47,9 +47,9 @@ pub fn login_form(props: &Props) -> Html {
 
     html! {
         <form onsubmit={on_submit}>
-            <InputField name="username" password=false autofocus=true on_change={username_changed} />
+            <InputField name="username" on_change={username_changed} />
             <br />
-            <InputField name="password" password=true autofocus=false on_change={password_changed} />
+            <InputField name="password" password=true on_change={password_changed} />
             <br />
             <Button label="Login" />
         </form>

@@ -73,11 +73,11 @@ pub fn registration_form(props: &Props) -> Html {
 
     html! {
         <form onsubmit={on_submit}>
-            <InputField name="username" password=false autofocus=true on_change={username_changed} />
+            <InputField name="username" on_change={username_changed} />
             <br />
-            <InputField name="password" password=true autofocus=false on_change={password_changed} />
+            <InputField name="password" password=true on_change={password_changed} />
             <br />
-            <InputField name="confirm password" password=true autofocus=false on_change={password_confirm_changed} />
+            <InputField name="confirm password" password=true on_change={password_confirm_changed} />
             <br />
             <Button label="Register" />
         </form>

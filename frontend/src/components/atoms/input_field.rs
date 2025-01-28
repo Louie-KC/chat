@@ -5,7 +5,9 @@ use yew::prelude::*;
 #[derive(Properties, PartialEq)]
 pub struct Props {
     pub name: String,
+    #[prop_or(false)]
     pub autofocus: bool,
+    #[prop_or(false)]
     pub password: bool,
     pub on_change: Callback<String>
 }

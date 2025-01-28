@@ -83,11 +83,11 @@ pub fn password_change_form(props: &Props) -> Html {
 
     html! {
         <form onsubmit={on_submit}>
-            <InputField name="old password" password=true autofocus=false on_change={old_password_changed} />
+            <InputField name="old password" password=true on_change={old_password_changed} />
             <br />
-            <InputField name="new password" password=true autofocus=false on_change={new_password_changed} />
+            <InputField name="new password" password=true on_change={new_password_changed} />
             <br />
-            <InputField name="new password confirm" password=true autofocus=false on_change={new_password_confirm_changed} />
+            <InputField name="new password confirm" password=true on_change={new_password_confirm_changed} />
             <br />
             <Button label="Change password" />
             <Button label="Cancel" on_click={Some(on_cancel)} />
