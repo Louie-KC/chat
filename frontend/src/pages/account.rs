@@ -35,6 +35,11 @@ pub fn account_management_page() -> Html {
         None => {}
     };
 
+    // Convert token info to renderable items
+    let token_children_info: Vec<Html> = token_info.iter()
+        .map(|info| html! { <TokenInfo info={info.clone()}/>})
+        .collect();
+
     let on_clear_tokens = {
         let navigator = navigator.clone();
         let store = store.clone();
@@ -89,14 +94,19 @@ pub fn account_management_page() -> Html {
         })
     };
 
-    let token_children_info: Vec<Html> = token_info.iter()
-        .map(|info| html! { <TokenInfo info={info.clone()}/>})
-        .collect();
+    let on_change_password = {
+        let navigator = navigator.clone();
+        Callback::from(move |_: MouseEvent| {
+            navigator.push(&Route::AccountChangePassword);
+        })
+    };
 
     html! {
         <>
             <h>{"Currently logged in devices/tokens"}</h>
             <ListView children={token_children_info} />
+            <Button label={"Change password"} on_click={Some(on_change_password)} />
+            <br />
             <Button label={"Log out"} on_click={Some(on_logout)} />
             <br />
             <Button label={"Log out of all devices"} on_click={Some(on_clear_tokens)} />

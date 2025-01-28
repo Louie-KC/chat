@@ -2,6 +2,7 @@ use yew::prelude::*;
 use yew_router::prelude::*;
 
 use crate::pages::account::AccountManagementPage;
+use crate::pages::change_password::ChangePasswordPage;
 use crate::pages::home::HomePage;
 use crate::pages::login::LoginPage;
 use crate::pages::registration::RegistrationPage;
@@ -16,6 +17,8 @@ pub enum Route {
     AccountLogin,
     #[at("/account/manage")]
     AccountManage,
+    #[at("/account/change-password")]
+    AccountChangePassword,
     #[not_found]
     #[at("/404")]
     NotFound
@@ -27,6 +30,7 @@ pub fn switch(route: Route) -> Html {
         Route::AccountRegister => html! { <RegistrationPage /> },
         Route::AccountLogin => html! { <LoginPage /> },
         Route::AccountManage => html! { <AccountManagementPage /> },
-        Route::NotFound => html! { <p1>{ "404 - Not Found" }</p1> }
+        Route::AccountChangePassword => html! { <ChangePasswordPage /> },
+        Route::NotFound => html! { <p1>{ "404 - Not Found" }</p1> },
     }
 }
