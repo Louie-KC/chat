@@ -4,7 +4,21 @@ use yew::prelude::*;
 use yew_router::{hooks::use_navigator, prelude::Redirect};
 use yewdux::use_store;
 
-use crate::{api_service, components::{atoms::{button::Button, token_info::TokenInfo}, molecules::list_view::ListView}, router::Route, store::Store};
+use crate::{
+    api_service,
+    components::{
+        atoms::{
+            button::Button,
+            token_info::TokenInfo
+        },
+        molecules::list_view::ListView
+    },
+    router::Route,
+    store::{
+        Store,
+        StoreDispatchExt
+    }
+};
 
 #[function_component(AccountManagementPage)]
 pub fn account_management_page() -> Html {
@@ -13,7 +27,7 @@ pub fn account_management_page() -> Html {
     let (store, dispatch) = use_store::<Store>();
 
     // Redirect to Home if not logged in
-    if store.token.is_none() {
+    if store.user.is_none() {
         return html! {
             <Redirect<Route> to={Route::Home}/>
         }
@@ -23,17 +37,14 @@ pub fn account_management_page() -> Html {
     let token_info = use_state(|| Vec::<LoginTokenInfo>::new());
 
     // Update token_info state if needed
-    match store.clone().token {
-        Some(token) => {
-            let token_info = token_info.clone();
-            wasm_bindgen_futures::spawn_local(async move {
-                if let Ok(info) = api_service::account_get_active_token_info(&token).await {
-                    token_info.set(info);
-                }
-            })
-        },
-        None => {}
-    };
+    if let Some(user_data) = store.user.clone() {
+        let token_info = token_info.clone();
+        wasm_bindgen_futures::spawn_local(async move {
+            if let Ok(info) = api_service::account_get_active_token_info(&user_data.token).await {
+                token_info.set(info);
+            }
+        })
+    }
 
     // Convert token info to renderable items
     let token_children_info: Vec<Html> = token_info.iter()
@@ -48,14 +59,10 @@ pub fn account_management_page() -> Html {
             let navigator = navigator.clone();
             let store = store.clone();
             let dispatch = dispatch.clone();
-            if let Some(token) = store.token {
+            if let Some(user_data) = store.user.clone() {
                 wasm_bindgen_futures::spawn_local(async move {
-                    if let Ok(_) = api_service::account_clear_tokens(&token).await {
-                        dispatch.reduce_mut(move |store| {
-                            store.username = None;
-                            store.user_id = None;
-                            store.token = None
-                        });
+                    if let Ok(_) = api_service::account_clear_tokens(&user_data.token).await {
+                        dispatch.logout_reduce();
                         navigator.push(&Route::Home);
                     } else {
                         log!("Clear request failed");
@@ -75,14 +82,10 @@ pub fn account_management_page() -> Html {
             let navigator = navigator.clone();
             let store = store.clone();
             let dispatch = dispatch.clone();
-            if let Some(token) = store.token {
+            if let Some(user_data) = store.user.clone() {
                 wasm_bindgen_futures::spawn_local(async move {
-                    if let Ok(_) = api_service::account_logout(&token).await {
-                        dispatch.reduce_mut(move |store| {
-                            store.username = None;
-                            store.user_id = None;
-                            store.token = None;
-                        });
+                    if let Ok(_) = api_service::account_logout(&user_data.token).await {
+                        dispatch.logout_reduce();
                         navigator.push(&Route::Home);
                     } else {
                         log!("Logout request failed");

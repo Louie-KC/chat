@@ -11,7 +11,7 @@ pub fn change_password_page() -> Html {
     let navigator = use_navigator().unwrap();
     let (store, _) = use_store::<Store>();
 
-    if store.token.is_none() {
+    if store.user.is_none() {
         log!("ChangePasswordPage redirect");
         return html! {
             <Redirect<Route> to={Route::AccountLogin} />
@@ -21,7 +21,7 @@ pub fn change_password_page() -> Html {
     // Component state
     let failed = use_state(|| false);
     let render_failed = failed.clone();
-    let token = Box::new(store.token.unwrap());
+    let token = Box::new(store.user.clone().unwrap().token);
 
     let on_submit = {
         Callback::from(move |change_form: Result<AccountPasswordChange, ()>| {

@@ -11,8 +11,8 @@ pub fn home_page() -> Html {
         <div>
             <h1>{ "home page" }</h1>
             <h2>{ "placeholder text" }</h2>
-            if store.token.is_some() {
-                <p>{ "Logged in as user: "}{ store.username.clone() }</p>
+            if store.user.is_some() {
+                <p>{ "Logged in as user: "}{ store.user.clone().unwrap().username.clone() }</p>
             } else {
                 <p>{ "Not logged in" }</p>
             }

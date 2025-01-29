@@ -10,7 +10,7 @@ use yewdux::prelude::*;
 use crate::api_service;
 use crate::components::molecules::login_form::LoginForm;
 use crate::router::Route;
-use crate::store::Store;
+use crate::store::{Store, StoreDispatchExt};
 
 #[derive(PartialEq, Clone)]
 enum LoginStatus {
@@ -25,7 +25,7 @@ pub fn login_page() -> Html {
     let (store, dispatch) = use_store::<Store>();
 
     // Redirect to Home if already logged in
-    if store.token.is_some() {
+    if store.user.is_some() {
         return html! {
             <Redirect<Route> to={Route::Home}/>
         }
@@ -45,11 +45,7 @@ pub fn login_page() -> Html {
                     Ok(response) => {
                         match Uuid::from_str(&response.token) {
                             Ok(token) => {
-                                dispatch.reduce_mut(move |store| {
-                                    store.username = Some(user.username);
-                                    store.user_id = Some(response.user_id);
-                                    store.token = Some(token);
-                                });
+                                dispatch.login_reduce(user.username, response.user_id, token);
                                 navigator.push(&Route::Home);
                             },
                             Err(_) => {

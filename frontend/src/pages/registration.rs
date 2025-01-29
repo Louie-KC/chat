@@ -21,7 +21,7 @@ pub fn registration_page() -> Html {
     let (store, _) = use_store::<Store>();
 
     // Redirect to Home if already logged in
-    if store.token.is_some() {
+    if store.user.is_some() {
         return html! {
             <Redirect<Route> to={Route::Home}/>
         }
