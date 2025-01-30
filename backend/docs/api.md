@@ -153,18 +153,16 @@ Retrieve a list of rooms that the logged in user are members of.
 * Possible responses:
     * HTTP 200 OK:
     ```json
-    {
-        rooms: [
-            {
-                "id": <room id>,
-                "name": <room name>
-            },
-            {
-                ...
-            },
+    [
+        {
+            "id": <room id>,
+            "name": <room name>
+        },
+        {
             ...
-        ]
-    }
+        },
+        ...
+    ]
     ```
     * HTTP 400 Bad Request: Invalid Bearer token format.
     * HTTP 401 Unauthorized: The provided authentication token does not map to a logged in user.
@@ -219,18 +217,16 @@ List the usernames of members in the room specified by the `room_id` parameter. 
 * Possible responses:
     * HTTP 200 OK:
     ```json
-    {
-        "members": [
-            {
-                "id": <user id>,
-                "username": <username>
-            },
-            {
-                ...
-            },
+    [
+        {
+            "id": <user id>,
+            "username": <username>
+        },
+        {
             ...
-        ]
-    }
+        },
+        ...
+    ]
     ```
     * HTTP 400 Bad Request: Invalid token format
     * HTTP 401 Unauthorized:
@@ -272,21 +268,19 @@ Note: The oldest message in the specified window/slice is first in the response,
 * Possible responses:
     * HTTP 200 OK:
     ```json
-    {
-        "messages": [
-            {
-                "id": <message id>,
-                "room_id": <room id>,
-                "sender_id": <sender user id>,
-                "body": <message body/text>,
-                "time_sent": <date & time in UTC time>
-            },
-            {
-                ...
-            },
+    [
+        {
+            "id": <message id>,
+            "room_id": <room id>,
+            "sender_id": <sender user id>,
+            "body": <message body/text>,
+            "time_sent": <date & time in UTC time>
+        },
+        {
             ...
-        ]
-    }
+        },
+        ...
+    ]
     ```
     * HTTP 400 Bad Request:
         * Invalid token format.

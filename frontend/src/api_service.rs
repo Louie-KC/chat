@@ -1,5 +1,5 @@
 use common::{
-    AccountPasswordChange, AccountRequest, ChatRoom, ChatRoomManageUser, ChatRoomName, LoginResponse, LoginTokenInfo, UserList
+    AccountPasswordChange, AccountRequest, ChatMessage, ChatRoom, ChatRoomManageUser, ChatRoomName, LoginResponse, LoginTokenInfo, UserInfo
 };
 
 use gloo::console::log;

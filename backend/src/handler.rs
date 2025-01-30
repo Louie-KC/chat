@@ -3,7 +3,17 @@ use std::str::FromStr;
 use const_format::formatcp;
 use serde_json::json;
 
-use common::{AccountPasswordChange, AccountRequest, ChatMessage, ChatMessageList, ChatRoomList, ChatRoomManageUser, ChatRoomName, LoginResponse, LoginTokenInfo, UserAssociationUpdate, UserInfo, UserList};
+use common::{
+    AccountPasswordChange,
+    AccountRequest,
+    ChatMessage,
+    ChatRoomManageUser,
+    ChatRoomName,
+    LoginResponse,
+    LoginTokenInfo,
+    UserAssociationUpdate,
+    UserInfo
+};
 
 use actix_web::{
     get,
@@ -335,7 +345,7 @@ async fn get_room_list(
     };
 
     match db_service.chat_room_list_for_user(&user_id).await {
-        Ok(rooms) => HttpResponse::Ok().json(ChatRoomList { rooms }),
+        Ok(rooms) => HttpResponse::Ok().json(rooms),
         Err(_) => return HttpResponse::InternalServerError().reason("2").finish(),
     }
 }
@@ -449,7 +459,7 @@ async fn get_room_member_names(
         .map(|m| UserInfo { id: m.user_id, username: m.username.clone() })
         .collect::<Vec<UserInfo>>();
 
-    HttpResponse::Ok().json(UserList { members: members_list })
+    HttpResponse::Ok().json(members_list)
 }
 
 #[post("/chat/{room_id}/manage-user")]
@@ -545,7 +555,7 @@ async fn chat_get_messages(
 
     // Retrieve messages to be returned
     match db_service.chat_room_read_messages(&room_id, &offset, &limit).await {
-        Ok(msg_window) => HttpResponse::Ok().json(ChatMessageList { messages: msg_window }),
+        Ok(msg_window) => HttpResponse::Ok().json(msg_window),
         Err(_) => HttpResponse::InternalServerError().reason("2").finish(),
     }
 }
@@ -605,7 +615,7 @@ async fn user_search_global(
     };
 
     match db_service.user_search_global(&user_id, &query.username).await {
-        Ok(members) => HttpResponse::Ok().json(UserList { members }),
+        Ok(members) => HttpResponse::Ok().json(members),
         Err(_) => HttpResponse::InternalServerError().reason("1").finish(),
     }
 }
