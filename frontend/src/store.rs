@@ -13,7 +13,6 @@ pub trait StoreDispatchExt {
 #[derive(Clone, PartialEq, Store)]
 pub struct Store {
     pub user: Option<User>,
-    pub selected_chat_id: Option<u64>
 }
 
 impl Default for Store {
@@ -31,7 +30,8 @@ impl Default for Store {
             (Ok(username), Ok(id), Some(token)) => Some(User::from_storage(username, id, token)),
             _ => None
         };
-        Self { user: user, selected_chat_id: None }
+        
+        Self { user }
     }
 }
 

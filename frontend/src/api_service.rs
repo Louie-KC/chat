@@ -180,7 +180,7 @@ pub async fn chat_change_name(token: &Uuid, room_id: u64, new_name: &str) -> Api
     }
 }
 
-pub async fn chat_get_members(token: &Uuid, room_id: u64) -> ApiResult<Vec<UserList>> {
+pub async fn chat_get_members(token: &Uuid, room_id: u64) -> ApiResult<Vec<UserInfo>> {
     let endpoint = format!("{}/chat/{}/members", BASE_URI, room_id);
 
     let response = reqwest::Client::new()
@@ -195,7 +195,7 @@ pub async fn chat_get_members(token: &Uuid, room_id: u64) -> ApiResult<Vec<UserL
         Err(_) => return Err("Undefined error".into())
     };
 
-    match response.json::<Vec<UserList>>().await {
+    match response.json::<Vec<UserInfo>>().await {
         Ok(members) => Ok(members),
         Err(_) => Err("Undefined error".into())
     }
@@ -215,6 +215,28 @@ pub async fn chat_manage_user(token: &Uuid, room_id: u64, action: ChatRoomManage
         Ok(res) if res.status() == StatusCode::OK => Ok(()),
         Ok(res) => Err(err_status_code_to_msg(&res).await),
         _ => Err("Undefined error".into())
+    }
+}
+
+pub async fn chat_get_messages(token: &Uuid, room_id: u64, offset: u64, limit: u64) -> ApiResult<Vec<ChatMessage>> {
+    let endpoint = format!("{}/chat/{}/{}/{}", BASE_URI, room_id, offset, limit);
+
+    let response = reqwest::Client::new()
+        .get(endpoint)
+        .bearer_auth(token.to_string())
+        .send()
+        .await;
+
+    let response = match response {
+        Ok(res) if res.status() == StatusCode::OK => res,
+        Ok(res) => return Err(err_status_code_to_msg(&res).await),
+        Err(_) => return Err("Undefined error".into())
+    };
+
+    match response.json::<Vec<ChatMessage>>().await {
+        Ok(message_window) => Ok(message_window),
+        Err(_) => Err("Undefined error".into())
+        
     }
 }
 
