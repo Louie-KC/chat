@@ -40,7 +40,13 @@ use argon2::{
 };
 use uuid::Uuid;
 
-use crate::{database::DatabaseServiceError, models::UserSearchParam, DatabaseService};
+use crate::{
+    database::{
+        DatabaseService,
+        DatabaseServiceError,
+    },
+    models::UserSearchParam,
+};
 
 const MIN_USERNAME_LEN: usize = 4;
 const MAX_USERNAME_LEN: usize = 64;
@@ -364,7 +370,7 @@ async fn create_chat_room(
         return HttpResponse::BadRequest().reason("room_name value longer than 64 chars").finish();
     }
 
-    if body.room_name.chars().any(|c| !c.is_ascii_alphanumeric()) {
+    if body.room_name.chars().any(|c| !c.is_ascii_alphanumeric() && c.ne(&' ')) {
         return HttpResponse::BadRequest().reason(NON_ALLOWED_CHARACTER_REASON).finish();
     }
 
@@ -404,7 +410,7 @@ async fn change_room_name(
         return HttpResponse::BadRequest().reason("room_name value longer than 64 chars").finish();
     }
 
-    if body.room_name.chars().any(|c| !c.is_ascii_alphanumeric()) {
+    if body.room_name.chars().any(|c| !c.is_ascii_alphanumeric() && c.ne(&' ')) {
         return HttpResponse::BadRequest().reason(NON_ALLOWED_CHARACTER_REASON).finish();
     }
 
