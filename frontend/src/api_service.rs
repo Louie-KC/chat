@@ -218,6 +218,8 @@ pub async fn chat_manage_user(token: &Uuid, room_id: u64, action: ChatRoomManage
     }
 }
 
+// Chat interaction
+
 pub async fn chat_get_messages(token: &Uuid, room_id: u64, offset: u64, limit: u64) -> ApiResult<Vec<ChatMessage>> {
     let endpoint = format!("{}/chat/{}/{}/{}", BASE_URI, room_id, offset, limit);
 
@@ -237,6 +239,23 @@ pub async fn chat_get_messages(token: &Uuid, room_id: u64, offset: u64, limit: u
         Ok(message_window) => Ok(message_window),
         Err(_) => Err("Undefined error".into())
         
+    }
+}
+
+pub async fn chat_send_message(token: &Uuid, message: ChatMessage) -> ApiResult<()> {
+    let endpoint = format!("{}/chat", BASE_URI);
+
+    let response = reqwest::Client::new()
+        .post(endpoint)
+        .bearer_auth(token)
+        .json(&message)
+        .send()
+        .await;
+
+    match response {
+        Ok(res) if res.status() == StatusCode::OK => Ok(()),
+        Ok(res) => Err(err_status_code_to_msg(&res).await),
+        Err(_) => Err("Undefined error".into()),
     }
 }
 
