@@ -20,7 +20,7 @@ use crate::{
     store::Store
 };
 
-const MSG_WINDOW_SIZE: u64 = 50;
+const MSG_WINDOW_SIZE: u64 = 5;
 
 #[derive(PartialEq, Debug)]
 enum MsgSendStatus {
@@ -66,13 +66,21 @@ pub fn chat_page() -> Html {
         let selected_room_exhausted_handle = selected_room_exhausted.clone();
         Callback::from(move |chat_id: u64| {
             selected_room_id_handle.set(Some(chat_id));
-            selected_room_pos_handle.set(0);
             selected_room_exhausted_handle.set(false);
             
+            let selected_room_pos_handle = selected_room_pos_handle.clone();
             let selected_room_messages_handle = selected_room_messages_handle.clone();
             wasm_bindgen_futures::spawn_local(async move {
                 match api_service::chat_get_messages(&token, chat_id, 0, MSG_WINDOW_SIZE).await {
-                    Ok(messages) => selected_room_messages_handle.set(messages),
+                    Ok(mut messages) => {
+                        let room_starting_pos = u64::try_from(messages.len()).unwrap_or_else(|_| {
+                            log!("Failed to parse retrieved message count");
+                            0
+                        });
+                        selected_room_pos_handle.set(room_starting_pos);
+                        messages.reverse();
+                        selected_room_messages_handle.set(messages);
+                    },
                     _ => {}
                 }
             });
@@ -96,9 +104,10 @@ pub fn chat_page() -> Html {
                 match api_service::chat_get_messages(&token, room_id, offset, MSG_WINDOW_SIZE).await {
                     Ok(next_messages) if next_messages.len() > 0 => {
                         // Join existing messages to newly fetched messages
-                        let chained_iter = selected_room_messages_handle.iter()
-                            .map(|old_msg| old_msg.clone())
-                            .chain(next_messages.iter().map(|new_msg| new_msg.clone()));
+                        let chained_iter = next_messages.iter()
+                            .rev()
+                            .map(|msg| msg.clone())
+                            .chain(selected_room_messages_handle.iter().map(|msg| msg.clone()));
 
                         let new_message_list = Vec::from_iter(chained_iter);
                         selected_room_messages_handle.set(new_message_list);
