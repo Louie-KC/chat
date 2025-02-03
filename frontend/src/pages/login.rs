@@ -54,8 +54,7 @@ pub fn login_page() -> Html {
                             },
                         }
                     },
-                    Err(reason) => {
-                        log!(format!("fail reason: {}", reason));
+                    Err(_) => {
                         status.set(LoginStatus::Failed);
                     }
                 }

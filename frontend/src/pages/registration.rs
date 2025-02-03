@@ -1,7 +1,6 @@
 use std::ops::Deref;
 
 use common::AccountRequest;
-use gloo::console::log;
 use yew::prelude::*;
 use yew_router::prelude::*;
 use yewdux::use_store;
@@ -38,10 +37,7 @@ pub fn registration_page() -> Html {
                 Ok(acc_req) => wasm_bindgen_futures::spawn_local(async move {
                     match api_service::account_register(acc_req).await {
                         Ok(()) => status.set(RegisterStatus::Success),
-                        Err(e) => {
-                            log!(format!("Registration failed: {}", e));
-                            status.set(RegisterStatus::Failed)
-                        }
+                        Err(_) => status.set(RegisterStatus::Failed)
                     }
                 }),
                 Err(_) => {}  // do nothing
