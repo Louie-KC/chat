@@ -58,7 +58,7 @@ pub struct ChatMessage {
     pub time_sent: Option<DateTime<Utc>>
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub struct UserInfo {
     pub id: u64,
     pub username: String

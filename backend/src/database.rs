@@ -6,9 +6,17 @@ use sqlx::{
 use sqlx::mysql::MySqlPoolOptions;
 use uuid::Uuid;
 
-use common::{ChatMessage, ChatRoom, LoginTokenInfo, UserInfo};
+use common::{
+    ChatMessage,
+    ChatRoom,
+    UserInfo
+};
 
-use crate::models::{DBAuthInfo, DBRoomMember, DBUser};
+use crate::models::{
+    DBAuthInfo,
+    DBRoomMember,
+    DBUser
+};
 
 type DBResult<T> = Result<T, DatabaseServiceError>;
 
@@ -359,7 +367,7 @@ impl DatabaseService {
             "SELECT *
             FROM Message
             WHERE room_id = ?
-            ORDER BY time_sent ASC
+            ORDER BY time_sent DESC
             LIMIT ?
             OFFSET ?;",
             room_id,
