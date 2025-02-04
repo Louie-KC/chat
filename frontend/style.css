@@ -105,6 +105,22 @@ input[type=submit] {
     width: 80%;
 }
 
+.chat.member {
+    /* Display + Box */
+    width: 100%;
+    padding: 1px 1px;
+    margin: 2px;
+    
+    /* Outline */
+    border-radius: 8px;
+    outline: solid;
+    outline-width: 1px;
+    outline-color: rgb(204, 204, 204);
+
+    /* Text */
+    text-align: center;
+}
+
 .row::after {
     content: "";
     display: table;

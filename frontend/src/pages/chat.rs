@@ -1,4 +1,4 @@
-use common::ChatRoom;
+use common::{ChatRoom, UserInfo};
 use yew::prelude::*;
 use yew_router::prelude::Redirect;
 use yewdux::use_store;
@@ -11,7 +11,7 @@ use crate::{
         button::Button,
         chat_message::ChatMessage,
         chat_room_preview::ChatRoomPreview,
-        input_field::InputField
+        input_field::InputField, user::UserWidget
     },
     router::Route,
     store::Store,
@@ -47,6 +47,8 @@ pub fn chat_page() -> Html {
     let selected_room_pos = use_state_eq(|| MSG_WINDOW_SIZE);
     let selected_room_messages = use_state_eq(|| Vec::<common::ChatMessage>::new());
     let selected_room_exhausted = use_state_eq(|| false);
+    // let selected_room_members = use_state_eq(|| vec![html! { <p> {"No room selected"} </p> }]);
+    let selected_room_members = use_state_eq(|| Vec::<UserInfo>::new());
     let sending_status = use_state_eq(|| MsgSendStatus::Idle);
 
     // Retrieve chat room state
@@ -58,6 +60,7 @@ pub fn chat_page() -> Html {
     });
 
     let selected_room_messages_handle = selected_room_messages.clone();
+    let selected_room_members_handle = selected_room_members.clone();
     let on_chat_room_select = {
         let selected_room_id_handle = selected_room_id.clone();
         let selected_room_pos_handle = selected_room_pos.clone();
@@ -68,6 +71,7 @@ pub fn chat_page() -> Html {
             
             let selected_room_pos_handle = selected_room_pos_handle.clone();
             let selected_room_messages_handle = selected_room_messages_handle.clone();
+            let selected_room_members_handle = selected_room_members_handle.clone();
             wasm_bindgen_futures::spawn_local(async move {
                 match api_service::chat_get_messages(&token, chat_id, 0, MSG_WINDOW_SIZE).await {
                     Ok(mut messages) => {
@@ -81,9 +85,17 @@ pub fn chat_page() -> Html {
                     },
                     _ => {}
                 }
+                match api_service::chat_get_members(&token, chat_id).await {
+                    Ok(members) => selected_room_members_handle.set(members),
+                    Err(_) => {},
+                }
             });
         })
     };
+
+    let chat_room_members_html: Vec<Html> = selected_room_members.iter()
+        .map(|member| html! { <UserWidget data={member.clone()} /> } )
+        .collect();
 
     let selected_room_messages_handle = selected_room_messages.clone();
     let selected_room_id_handle = selected_room_id.clone();
@@ -204,7 +216,12 @@ pub fn chat_page() -> Html {
                     }
                 </div>
                 <div class={classes!("chat_column", "side")}>
-                    <p>{ "TODO: room members list"}</p>
+                    if chat_room_members_html.is_empty() {
+                        <p>{ "No room selected" }</p>
+                    } else {
+                        <p>{ "Room members" }</p>
+                        <ListView children={chat_room_members_html} />
+                    }
                 </div>
             </div>
         </>
