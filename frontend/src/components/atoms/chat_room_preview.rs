@@ -20,7 +20,7 @@ pub fn chat_room_preview(props: &Props) -> Html {
     };
 
     html! {
-        <div onclick={on_click}>
+        <div onclick={on_click} class={classes!("message_container")}>
             <p>{ props.chat.name.clone() }</p>
             <p>{ props.last_msg_preview.clone() }</p>
         </div>

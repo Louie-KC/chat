@@ -188,21 +188,26 @@ pub fn chat_page() -> Html {
     html! {
         <>
             <h>{ "Chat rooms" }</h>
-            <div>
-                <ListView children={chat_room_preview_html} />
-            </div>
-            <div>
-                if selected_room_id.is_some() {
-                    if *selected_room_exhausted {
-                        <p>{ "No more messages" }</p>
+            <div class={classes!("row")}>
+                <div class={classes!("chat_column", "side")}>
+                    <ListView children={chat_room_preview_html} />
+                </div>
+                <div class={classes!("chat_column", "middle")}>
+                    if selected_room_id.is_some() {
+                        if *selected_room_exhausted {
+                            <p>{ "No more messages" }</p>
+                        } else {
+                            <Button label={ "Load more" } on_click={on_load_more_messages} />
+                        }
+                        <ListView children={chat_room_mesages_html} />
+                        <InputField name={""} on_change={input_on_submit} /> 
                     } else {
-                        <Button label={ "Load more" } on_click={on_load_more_messages} />
+                        <p>{ "No chat selected" }</p>
                     }
-                    <ListView children={chat_room_mesages_html} />
-                    <InputField name={""} on_change={input_on_submit} /> 
-                } else {
-                    <p>{ "No chat selected" }</p>
-                }
+                </div>
+                <div class={classes!("chat_column", "side")}>
+                    <p>{ "TODO: room members list"}</p>
+                </div>
             </div>
         </>
     }

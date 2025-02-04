@@ -20,6 +20,6 @@ pub fn button(props: &Props) -> Html {
 
     html! {
         // do not specify button type. Blocks onsubmit if part of a form.
-        <button onclick={on_click_callback}> {props.label.clone()} </button>
+        <button onclick={on_click_callback} class={classes!("button")}> {props.label.clone()} </button>
     }
 }

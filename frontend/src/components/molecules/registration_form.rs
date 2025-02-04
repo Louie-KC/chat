@@ -72,7 +72,7 @@ pub fn registration_form(props: &Props) -> Html {
     };
 
     html! {
-        <form onsubmit={on_submit}>
+        <form onsubmit={on_submit} class={classes!("account_form")}>
             <InputField name="username" on_change={username_changed} />
             <br />
             <InputField name="password" password=true on_change={password_changed} />

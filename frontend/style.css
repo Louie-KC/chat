@@ -1,0 +1,139 @@
+
+html, body {
+    max-width: 100%;
+    overflow-x: hidden
+}
+
+/* Navigation bar */
+.topnav {
+    overflow: hidden;
+    background-color: whitesmoke;
+}
+
+.topnav a {
+    /* Positioning */
+    float: left;
+
+    /* Display + Box */
+    display: block;
+    padding: 8px;
+
+    /* Colour */
+    color: black;
+    
+    /* Text */
+    text-decoration: none;  /* Remove underline */
+}
+
+.topnav a:hover {
+    background-color: rgb(232, 232, 232);
+}
+
+/* Input fields */
+input[type=text], input[type=password] {
+    /* Display + Box */
+    width: 100%;
+    display: inline-block;
+    padding: 12px 20px;
+    margin: 8px 0;
+    box-sizing: border-box;
+    border: 1px;
+    border-radius: 4px;
+    
+    /* Outline */
+    outline: solid;
+    outline-color: rgb(204, 204, 204);
+    outline-width: 1px;
+
+    /* Text */
+    font-size: medium;
+}
+
+input[type=submit] {
+    width: 100%;
+    background-color: rgb(240, 240, 240);
+    cursor: pointer;
+}
+
+/* Account forms (registration, login) */
+.account_form {
+    /* Display + Box */
+    width: 50%;
+    min-width: 400px;
+    border-radius: 5px;
+    padding: 10px;
+
+    /* Colour */
+    background-color: rgb(242, 242, 242);
+}
+
+.button {
+    /* Display + Box */
+    width: 100%;
+    padding: 16px 32px;
+    border-style: solid;
+    border-radius: 4px;
+    box-shadow: 0px;
+    margin: 1px;
+    
+    /* Colour */
+    color: black;
+    background-color: whitesmoke;
+    
+    /* Text */
+    text-align: center;
+    
+    /* Other */
+    transition: 0.125s;
+    cursor: pointer;
+}
+
+.button:hover {
+    background-color: rgb(232, 232, 232);
+}
+
+/* Chat page */
+.chat_column {
+    float: left;
+}
+
+.chat_column.side {
+    width: 10%;
+}
+
+.chat_column.middle {
+    width: 80%;
+}
+
+.row::after {
+    content: "";
+    display: table;
+    clear: both;
+}
+
+@media screen and (max-width: 400px) {
+    .chat_column.side, .chat_column.middle {
+        width: 100%;
+    }
+}
+
+/* Messages */
+ul {
+    list-style: none;
+    padding-left: 0;
+}
+
+.message_container {
+    border: 2px solid rgb(200, 200, 200);
+    border-width: 1px;
+    border-radius: 8px;
+    margin: 2px;
+}
+
+/* Logged in devices */
+.token_container {
+    max-width: 50%;
+    border-top: 1px solid black;
+    border-bottom: 1px solid black;
+    margin: -1px;  /* Overlap borders to remove double borders */
+}

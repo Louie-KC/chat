@@ -15,7 +15,7 @@ pub fn token_info(props: &Props) -> Html {
         false => "No",
     };
     html! {
-        <div>
+        <div class={classes!("token_container")}>
             <p>{ "Device name: "}{props.info.user_agent.clone()}</p>
             <p>{ "Initial login: "}{props.info.time_set.to_rfc3339_opts(SecondsFormat::Secs, true)}</p>
             <p>{ "This device: "}{is_requester}</p>

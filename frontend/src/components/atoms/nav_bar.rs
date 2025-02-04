@@ -9,7 +9,7 @@ pub fn NavBar() -> Html {
     let (store, _) = use_store::<Store>();
 
     html! {
-        <nav>
+        <nav class={classes!("topnav")}>
             <Link<Route> to={Route::Home}> {"Home"} </Link<Route>>
             if store.user.is_none() {
                 <Link<Route> to={Route::AccountRegister}> {"Register"} </Link<Route>>

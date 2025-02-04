@@ -20,7 +20,7 @@ pub fn chat_message(props: &Props) -> Html {
     };
 
     html! {
-        <div>
+        <div class={classes!("message_container")}>
             <p>{"sender id: "}{ sender_id }</p>
             <p>{"body: "}{ props.message.body.clone() }</p>
             <p>{"time sent: "}{ time_sent }</p>
