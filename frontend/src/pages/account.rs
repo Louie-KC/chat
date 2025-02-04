@@ -7,17 +7,15 @@ use yewdux::use_store;
 use crate::{
     api_service,
     components::{
-        atoms::{
-            button::Button,
-            token_info::TokenInfo
-        },
-        molecules::list_view::ListView
+        button::Button,
+        token_info::TokenInfo
     },
     router::Route,
     store::{
         Store,
         StoreDispatchExt
-    }
+    },
+    widgets::list_view::ListView,
 };
 
 #[function_component(AccountManagementPage)]

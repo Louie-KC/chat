@@ -2,7 +2,7 @@ use yew::prelude::*;
 use yew_router::prelude::*;
 use yew_router::BrowserRouter;
 
-use crate::components::atoms::nav_bar::NavBar;
+use crate::components::nav_bar::NavBar;
 use crate::router::{self, Route};
 
 #[function_component]

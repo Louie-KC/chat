@@ -8,7 +8,7 @@ use yew_router::prelude::*;
 use yewdux::prelude::*;
 
 use crate::api_service;
-use crate::components::molecules::login_form::LoginForm;
+use crate::widgets::login_form::LoginForm;
 use crate::router::Route;
 use crate::store::{Store, StoreDispatchExt};
 

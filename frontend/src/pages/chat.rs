@@ -8,16 +8,14 @@ use gloo::console::log;
 use crate::{
     api_service,
     components::{
-        atoms::{
-            button::Button,
-            chat_message::ChatMessage,
-            chat_room_preview::ChatRoomPreview,
-            input_field::InputField
-        },
-        molecules::list_view::ListView
+        button::Button,
+        chat_message::ChatMessage,
+        chat_room_preview::ChatRoomPreview,
+        input_field::InputField
     },
     router::Route,
-    store::Store
+    store::Store,
+    widgets::list_view::ListView,
 };
 
 const MSG_WINDOW_SIZE: u64 = 5;

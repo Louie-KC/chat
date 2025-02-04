@@ -1,6 +1,7 @@
 mod app;
 mod api_service;
 mod components;
+mod widgets;
 mod pages;
 mod router;
 mod store;

@@ -5,7 +5,12 @@ use yew::prelude::*;
 use yew_router::prelude::*;
 use yewdux::use_store;
 
-use crate::{api_service, components::molecules::registration_form::RegistrationForm, router::Route, store::Store};
+use crate::{
+    api_service,
+    router::Route,
+    store::Store,
+    widgets::registration_form::RegistrationForm,
+};
 
 #[derive(PartialEq)]
 enum RegisterStatus {

@@ -3,7 +3,10 @@ use std::ops::Deref;
 use common::AccountRequest;
 use yew::prelude::*;
 
-use crate::components::atoms::{button::Button, input_field::InputField};
+use crate::components::{
+    button::Button,
+    input_field::InputField
+};
 
 #[derive(Properties, PartialEq)]
 pub struct Props {

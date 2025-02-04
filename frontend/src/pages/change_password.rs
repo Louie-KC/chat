@@ -4,7 +4,12 @@ use yew::prelude::*;
 use yew_router::prelude::*;
 use yewdux::use_store;
 
-use crate::{api_service, components::molecules::password_change_form::PasswordChangeForm, router::Route, store::Store};
+use crate::{
+    api_service,
+    router::Route,
+    store::Store,
+    widgets::password_change_form::PasswordChangeForm,
+};
 
 #[function_component(ChangePasswordPage)]
 pub fn change_password_page() -> Html {

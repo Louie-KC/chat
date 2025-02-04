@@ -6,7 +6,10 @@ use yew::prelude::*;
 use common::AccountPasswordChange;
 use yew_router::hooks::use_navigator;
 
-use crate::components::atoms::{button::Button, input_field::InputField};
+use crate::components::{
+    button::Button,
+    input_field::InputField
+};
 
 #[derive(Properties, PartialEq)]
 pub struct Props {

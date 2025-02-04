@@ -4,7 +4,10 @@ use common::AccountRequest;
 use gloo::console::log;
 use yew::prelude::*;
 
-use crate::components::atoms::{button::Button, input_field::InputField};
+use crate::components::{
+    button::Button,
+    input_field::InputField
+};
 
 #[derive(Properties, PartialEq)]
 pub struct Props {
