@@ -28,6 +28,11 @@ Chat interaction (`/chat`)
 * [`GET  /chat/{room_id}/{offset}/{limit}`](#get-chatroom_idoffsetlimit)
 * [`POST /chat`](#post-chat)
 
+User search & assocations (`/users`)
+
+* [`GET  /users`](#get-users)
+* [`POST /users`](#post-users)
+
 ### GET /health
 
 Poll the server to see if it is running.
@@ -309,4 +314,53 @@ Send a message in a chat room.
     * HTTP 401 Unauthorized:
         * The provided authentication token does not map to a user.
         * The logged in user is not a member of the specified room.
+    * HTTP 500 Internal Server Error: An error has occurred.
+
+### GET /users
+A global search for users by username.
+
+Users that have blocked the requesting user are excluded from the returned list.
+
+* Authentication: Bearer
+* Expected JSON payload: None
+* Query parameter: "username"
+* Possible responses:
+    * HTTP 200 OK:
+    ```json
+    [
+        {
+            "id": <user id>,
+            "username": <username>
+        },
+        {
+            ...
+        },
+        ...
+    ]
+    ```
+    * HTTP 400 Bad Request: Invalid token format.
+    * HTTP 401 Unauthorized: The provided authentication token does not map to a user.
+    * HTTP 500 Internal Server Error: An error has occurred.
+
+### POST /users
+Create or remove a one way association (friend, block) from the requesting user to another.
+
+* Authentication: Bearer
+* Expected JSON payload:
+```json
+{
+    "other_user_id": <user id>,
+    "association_type": ["Friend" | "Block" | "Remove"]
+}
+```
+* Query parameter: "username"
+* Possible responses:
+    * HTTP 200 OK:
+    ```json
+    {
+        "status": ["success" | "no change"]
+    }
+    ```
+    * HTTP 400 Bad Request: Invalid token format.
+    * HTTP 401 Unauthorized: The provided authentication token does not map to a user.
     * HTTP 500 Internal Server Error: An error has occurred.
