@@ -45,6 +45,8 @@ pub fn chat_page() -> Html {
     let chat_room_list = use_state_eq(|| Vec::<ChatRoom>::new());
     let selected_room_id = use_state_eq(|| Option::<u64>::None);
     let selected_room_pos = use_state_eq(|| MSG_WINDOW_SIZE);
+    // let selected_room_info = use_state_eq(|| ChatRoom { id: 0, name: "".into() });
+    let selected_room_name = use_state_eq(|| "".to_string());
     let selected_room_messages = use_state_eq(|| Vec::<common::ChatMessage>::new());
     let selected_room_exhausted = use_state_eq(|| false);
     // let selected_room_members = use_state_eq(|| vec![html! { <p> {"No room selected"} </p> }]);
@@ -58,14 +60,19 @@ pub fn chat_page() -> Html {
             chat_room_list_handle.set(rooms);
         }
     });
-
+    
+    let chat_room_list_handle = chat_room_list.clone();
+    let selected_room_name_handle = selected_room_name.clone();
     let selected_room_messages_handle = selected_room_messages.clone();
     let selected_room_members_handle = selected_room_members.clone();
     let on_chat_room_select = {
+        let selected_room_name_handle = selected_room_name_handle.clone();
         let selected_room_id_handle = selected_room_id.clone();
         let selected_room_pos_handle = selected_room_pos.clone();
         let selected_room_exhausted_handle = selected_room_exhausted.clone();
         Callback::from(move |chat_id: u64| {
+            let room = chat_room_list_handle.iter().find(|room| room.id.eq(&chat_id)).unwrap();
+            selected_room_name_handle.set(room.name.clone());
             selected_room_id_handle.set(Some(chat_id));
             selected_room_exhausted_handle.set(false);
             
@@ -204,6 +211,7 @@ pub fn chat_page() -> Html {
                 </div>
                 <div class={classes!("chat_column", "middle")}>
                     if selected_room_id.is_some() {
+                        <p>{ selected_room_name.to_string() }</p>
                         if *selected_room_exhausted {
                             <p>{ "No more messages" }</p>
                         } else {
