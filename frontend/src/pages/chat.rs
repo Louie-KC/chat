@@ -1,3 +1,5 @@
+use std::ops::Deref;
+
 use common::{ChatRoom, UserInfo};
 use yew::prelude::*;
 use yew_router::prelude::Redirect;
@@ -20,11 +22,38 @@ use crate::{
 
 const MSG_WINDOW_SIZE: u64 = 5;
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 enum MsgSendStatus {
     Idle,
     Sending,
     Failed,
+}
+
+#[derive(PartialEq, Clone)]
+struct State {
+    chat_room_list: Vec::<ChatRoom>,
+    selected_room_id: Option<u64>,
+    selected_room_pos: u64,
+    selected_room_name: String,
+    selected_room_messages: Vec<common::ChatMessage>,
+    selected_room_exhausted: bool,
+    selected_room_members: Vec<UserInfo>,
+    sending_status: MsgSendStatus
+}
+
+impl Default for State {
+    fn default() -> Self {
+        Self {
+            chat_room_list: Vec::with_capacity(0),
+            selected_room_id: None,
+            selected_room_pos: MSG_WINDOW_SIZE,
+            selected_room_name: "".to_string(),
+            selected_room_messages: Vec::with_capacity(0),
+            selected_room_exhausted: false,
+            selected_room_members: Vec::with_capacity(0),
+            sending_status: MsgSendStatus::Idle
+        }
+    }
 }
 
 #[function_component(ChatPage)]
@@ -41,44 +70,29 @@ pub fn chat_page() -> Html {
 
     let token = store.user.clone().unwrap().token.clone();
 
-    // Component state
-    let chat_room_list = use_state_eq(|| Vec::<ChatRoom>::new());
-    let selected_room_id = use_state_eq(|| Option::<u64>::None);
-    let selected_room_pos = use_state_eq(|| MSG_WINDOW_SIZE);
-    // let selected_room_info = use_state_eq(|| ChatRoom { id: 0, name: "".into() });
-    let selected_room_name = use_state_eq(|| "".to_string());
-    let selected_room_messages = use_state_eq(|| Vec::<common::ChatMessage>::new());
-    let selected_room_exhausted = use_state_eq(|| false);
-    // let selected_room_members = use_state_eq(|| vec![html! { <p> {"No room selected"} </p> }]);
-    let selected_room_members = use_state_eq(|| Vec::<UserInfo>::new());
-    let sending_status = use_state_eq(|| MsgSendStatus::Idle);
+    let component_state = use_state_eq(|| State::default());
 
     // Retrieve chat room state
-    let chat_room_list_handle = chat_room_list.clone();
+    let state_handle = component_state.clone();
     wasm_bindgen_futures::spawn_local(async move {
         if let Ok(rooms) = api_service::chat_get_rooms(&token).await {
-            chat_room_list_handle.set(rooms);
+            let mut updated_state = state_handle.deref().clone();
+            updated_state.chat_room_list = rooms;
+            state_handle.set(updated_state);
         }
     });
     
-    let chat_room_list_handle = chat_room_list.clone();
-    let selected_room_name_handle = selected_room_name.clone();
-    let selected_room_messages_handle = selected_room_messages.clone();
-    let selected_room_members_handle = selected_room_members.clone();
+    let state_handle = component_state.clone();
     let on_chat_room_select = {
-        let selected_room_name_handle = selected_room_name_handle.clone();
-        let selected_room_id_handle = selected_room_id.clone();
-        let selected_room_pos_handle = selected_room_pos.clone();
-        let selected_room_exhausted_handle = selected_room_exhausted.clone();
+        let state_handle = state_handle.clone();
         Callback::from(move |chat_id: u64| {
-            let room = chat_room_list_handle.iter().find(|room| room.id.eq(&chat_id)).unwrap();
-            selected_room_name_handle.set(room.name.clone());
-            selected_room_id_handle.set(Some(chat_id));
-            selected_room_exhausted_handle.set(false);
-            
-            let selected_room_pos_handle = selected_room_pos_handle.clone();
-            let selected_room_messages_handle = selected_room_messages_handle.clone();
-            let selected_room_members_handle = selected_room_members_handle.clone();
+            let state_handle = state_handle.clone();
+            let mut updated_state = state_handle.deref().clone();
+
+            let room = state_handle.chat_room_list.iter().find(|room| room.id.eq(&chat_id)).unwrap();
+            updated_state.selected_room_name = room.name.clone();
+            updated_state.selected_room_id = Some(chat_id);
+            updated_state.selected_room_exhausted = false;
             wasm_bindgen_futures::spawn_local(async move {
                 match api_service::chat_get_messages(&token, chat_id, 0, MSG_WINDOW_SIZE).await {
                     Ok(mut messages) => {
@@ -86,118 +100,109 @@ pub fn chat_page() -> Html {
                             log!("Failed to parse retrieved message count");
                             0
                         });
-                        selected_room_pos_handle.set(room_starting_pos);
+                        updated_state.selected_room_pos = room_starting_pos;
                         messages.reverse();
-                        selected_room_messages_handle.set(messages);
+                        updated_state.selected_room_messages = messages;
                     },
                     _ => {}
                 }
                 match api_service::chat_get_members(&token, chat_id).await {
-                    Ok(members) => selected_room_members_handle.set(members),
+                    Ok(members) => updated_state.selected_room_members = members,
                     Err(_) => {},
                 }
+                state_handle.set(updated_state);
             });
         })
     };
 
-    let chat_room_members_html: Vec<Html> = selected_room_members.iter()
+    let chat_room_members_html: Vec<Html> = component_state.selected_room_members.iter()
         .map(|member| html! { <UserWidget data={member.clone()} /> } )
         .collect();
 
-    let selected_room_messages_handle = selected_room_messages.clone();
-    let selected_room_id_handle = selected_room_id.clone();
-    let selected_room_exhausted_handle = selected_room_exhausted.clone();
-    let selected_room_pos_handle = selected_room_pos.clone();
+    let state_handle = component_state.clone();
     let on_load_more_messages = {
-        let selected_room_id_handle = selected_room_id_handle.clone();
         Callback::from(move |_: MouseEvent| {
-            let selected_room_id_handle = selected_room_id_handle.clone();
-            let selected_room_pos_handle = selected_room_pos_handle.clone();
-            let selected_room_messages_handle = selected_room_messages_handle.clone();
-            let selected_room_exhausted_handle = selected_room_exhausted_handle.clone();
+            let state_handle = state_handle.clone();
+            let mut updated_state = state_handle.deref().clone();
             wasm_bindgen_futures::spawn_local(async move {
-                let room_id = selected_room_id_handle.unwrap();
-                let offset = *selected_room_pos_handle;
+                let room_id = state_handle.selected_room_id.unwrap();
+                let offset = state_handle.selected_room_pos;
                 match api_service::chat_get_messages(&token, room_id, offset, MSG_WINDOW_SIZE).await {
                     Ok(next_messages) if next_messages.len() > 0 => {
                         // Join existing messages to newly fetched messages
                         let chained_iter = next_messages.iter()
                             .rev()
                             .map(|msg| msg.clone())
-                            .chain(selected_room_messages_handle.iter().map(|msg| msg.clone()));
+                            .chain(state_handle.selected_room_messages.iter().map(|msg| msg.clone()));
 
                         let new_message_list = Vec::from_iter(chained_iter);
-                        selected_room_messages_handle.set(new_message_list);
+                        updated_state.selected_room_messages = new_message_list;
 
                         // Adjust position of the window for next message fetch/load more messages
-                        selected_room_pos_handle.set(*selected_room_pos_handle + MSG_WINDOW_SIZE);
+                        updated_state.selected_room_pos = updated_state.selected_room_pos + MSG_WINDOW_SIZE;
                     },
                     Ok(_) => {
-                        selected_room_exhausted_handle.set(true);
+                        updated_state.selected_room_exhausted = true;
                     }
                     Err(_) => {},
                 }
+                state_handle.set(updated_state);
             });
         })
     };
 
-    let chat_room_preview_html: Vec<Html> = chat_room_list.iter()
+    let chat_room_preview_html: Vec<Html> = component_state.chat_room_list.iter()
         .map(|room: &ChatRoom| html! {
             <ChatRoomPreview chat={room.clone()} on_select={on_chat_room_select.clone()} />
         })
         .collect();
 
-    let chat_room_mesages_html: Vec<Html> = selected_room_messages.iter()
+    let chat_room_mesages_html: Vec<Html> = component_state.selected_room_messages.iter()
         .map(|message: &common::ChatMessage| html! {
             <ChatMessage message={message.clone()} />
         })
         .collect();
 
+    let state_handle = component_state.clone();
     let input_on_submit: Callback<String> = {
-        let selected_room_id_handle = selected_room_id.clone();
-        let sending_status_handle = sending_status.clone();
-        let selected_room_messages_handle = selected_room_messages.clone();
-        let selected_room_pos_handle = selected_room_pos.clone();
-        let selected_room_exhausted_handle = selected_room_exhausted.clone();
         Callback::from(move |text: String| {
             // Disallow sending of message while one is already in flight.
-            if MsgSendStatus::Sending.eq(&sending_status_handle) {
+            if MsgSendStatus::Sending.eq(&state_handle.sending_status) {
                 return;
             }
             
-            sending_status_handle.clone().set(MsgSendStatus::Sending);
+            let state_handle = state_handle.clone();
+            let mut updated_state = state_handle.deref().clone();
             let message = common::ChatMessage {
                 id: None,
-                room_id: selected_room_id_handle.unwrap(),
+                room_id: state_handle.selected_room_id.unwrap(),
                 sender_id: None,
                 body: text,
                 time_sent: None
             };
-            let sending_status_async_handle = sending_status_handle.clone();
-            let selected_room_messages_handle = selected_room_messages_handle.clone();
-            let selected_room_pos_handle = selected_room_pos_handle.clone();
-            let selected_room_exhausted_handle = selected_room_exhausted_handle.clone();
+
             let message_clone = message.clone();
-            let room_id = selected_room_id_handle.unwrap();
+            let room_id = message.room_id;
             wasm_bindgen_futures::spawn_local(async move {
                 // Send message and update state
                 match api_service::chat_send_message(&token, message_clone).await {
-                    Ok(()) => &sending_status_async_handle.set(MsgSendStatus::Idle),
-                    Err(_) => &sending_status_async_handle.set(MsgSendStatus::Failed),
+                    Ok(()) => updated_state.sending_status = MsgSendStatus::Idle,
+                    Err(_) => updated_state.sending_status = MsgSendStatus::Failed,
                 };
 
                 // If success (back in idle state) add the send message to the local message list
-                if let MsgSendStatus::Idle = *sending_status_async_handle {
+                if let MsgSendStatus::Idle = updated_state.sending_status {
                     match api_service::chat_get_messages(&token, room_id, 0, MSG_WINDOW_SIZE).await {
                         Ok(messages) => {
-                            selected_room_messages_handle.set(messages);
+                            updated_state.selected_room_messages = messages;
                             // reset open chat room state
-                            selected_room_pos_handle.set(0);
-                            selected_room_exhausted_handle.set(false);
+                            updated_state.selected_room_pos = 0;
+                            updated_state.selected_room_exhausted = false;
                         },
                         _ => log!("Failed to retrieve messages after sending one")
                     }
                 }
+                state_handle.set(updated_state);
             });
         })
     };
@@ -210,9 +215,9 @@ pub fn chat_page() -> Html {
                     <ListView children={chat_room_preview_html} />
                 </div>
                 <div class={classes!("chat_column", "middle")}>
-                    if selected_room_id.is_some() {
-                        <p>{ selected_room_name.to_string() }</p>
-                        if *selected_room_exhausted {
+                    if component_state.selected_room_id.is_some() {
+                        <p>{ component_state.selected_room_name.to_string() }</p>
+                        if component_state.selected_room_exhausted {
                             <p>{ "No more messages" }</p>
                         } else {
                             <Button label={ "Load more" } on_click={on_load_more_messages} />
