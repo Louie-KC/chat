@@ -1,6 +1,6 @@
 use std::ops::Deref;
 
-use common::{ChatRoom, UserInfo};
+use common::{ChatRoom, ChatRoomManageUser, ChatRoomManageUserAction, UserInfo};
 use yew::prelude::*;
 use yew_router::prelude::Redirect;
 use yewdux::use_store;
@@ -13,11 +13,12 @@ use crate::{
         button::Button,
         chat_message::ChatMessage,
         chat_room_preview::ChatRoomPreview,
-        input_field::InputField, user::UserWidget
+        input_field::InputField,
+        user::UserDetailComponent
     },
     router::Route,
     store::Store,
-    widgets::list_view::ListView,
+    widgets::{list_view::ListView, user_search::UserSearch},
 };
 
 const MSG_WINDOW_SIZE: u64 = 5;
@@ -30,6 +31,12 @@ enum MsgSendStatus {
 }
 
 #[derive(PartialEq, Clone)]
+enum MemberPanelMode {
+    ViewMembers,
+    AddMembers
+}
+
+#[derive(PartialEq, Clone)]
 struct State {
     chat_room_list: Vec::<ChatRoom>,
     selected_room_id: Option<u64>,
@@ -38,7 +45,8 @@ struct State {
     selected_room_messages: Vec<common::ChatMessage>,
     selected_room_exhausted: bool,
     selected_room_members: Vec<UserInfo>,
-    sending_status: MsgSendStatus
+    sending_status: MsgSendStatus,
+    member_panel_mode: MemberPanelMode
 }
 
 impl Default for State {
@@ -51,7 +59,8 @@ impl Default for State {
             selected_room_messages: Vec::with_capacity(0),
             selected_room_exhausted: false,
             selected_room_members: Vec::with_capacity(0),
-            sending_status: MsgSendStatus::Idle
+            sending_status: MsgSendStatus::Idle,
+            member_panel_mode: MemberPanelMode::ViewMembers
         }
     }
 }
@@ -88,12 +97,13 @@ pub fn chat_page() -> Html {
         Callback::from(move |chat_id: u64| {
             let state_handle = state_handle.clone();
             let mut updated_state = state_handle.deref().clone();
-
+            
             let room = state_handle.chat_room_list.iter().find(|room| room.id.eq(&chat_id)).unwrap();
             updated_state.selected_room_name = room.name.clone();
             updated_state.selected_room_id = Some(chat_id);
             updated_state.selected_room_exhausted = false;
             wasm_bindgen_futures::spawn_local(async move {
+                // Messages
                 match api_service::chat_get_messages(&token, chat_id, 0, MSG_WINDOW_SIZE).await {
                     Ok(mut messages) => {
                         let room_starting_pos = u64::try_from(messages.len()).unwrap_or_else(|_| {
@@ -106,6 +116,7 @@ pub fn chat_page() -> Html {
                     },
                     _ => {}
                 }
+                // Members
                 match api_service::chat_get_members(&token, chat_id).await {
                     Ok(members) => updated_state.selected_room_members = members,
                     Err(_) => {},
@@ -115,9 +126,87 @@ pub fn chat_page() -> Html {
         })
     };
 
-    let chat_room_members_html: Vec<Html> = component_state.selected_room_members.iter()
-        .map(|member| html! { <UserWidget data={member.clone()} /> } )
-        .collect();
+    let state_handle = component_state.clone();
+    let to_view_members = {
+        Callback::from(move |_: MouseEvent| {
+            let state_handle = state_handle.clone();
+            let mut updated_state = state_handle.deref().clone();
+            updated_state.member_panel_mode = MemberPanelMode::ViewMembers;
+
+            wasm_bindgen_futures::spawn_local(async move {
+                let chat_id = updated_state.selected_room_id.unwrap();
+                match api_service::chat_get_members(&token, chat_id).await {
+                    Ok(members) => updated_state.selected_room_members = members,
+                    Err(_) => {},
+                }
+                state_handle.set(updated_state);
+            });
+            
+        })
+    };
+    
+    let state_handle = component_state.clone();
+    let to_add_members = {
+        Callback::from(move |_: MouseEvent| {
+            let state_handle = state_handle.clone();
+            let mut updated_state = state_handle.deref().clone();
+            updated_state.member_panel_mode = MemberPanelMode::AddMembers;
+            state_handle.set(updated_state);
+        })
+    };
+    
+    let state_handle = component_state.clone();
+    let on_add_member = Callback::from(move |user_id_to_add: u64| {
+        let room_id = state_handle.selected_room_id.unwrap();
+        let manage_action = ChatRoomManageUser {
+            user_id: user_id_to_add,
+            action: ChatRoomManageUserAction::AddUser
+        };
+        
+        wasm_bindgen_futures::spawn_local(async move {
+            match api_service::chat_manage_user(&token, room_id, manage_action).await {
+                Ok(()) => {},
+                Err(e) => log!(format!("{:?}", e)),
+            }
+        });
+        let room_id = state_handle.selected_room_id.unwrap();
+        let manage_action = ChatRoomManageUser {
+            user_id: user_id_to_add,
+            action: ChatRoomManageUserAction::AddUser
+        };
+        
+        wasm_bindgen_futures::spawn_local(async move {
+            match api_service::chat_manage_user(&token, room_id, manage_action).await {
+                Ok(()) => {},
+                Err(e) => log!(format!("{:?}", e)),
+            }
+        });
+    });
+    
+    let state_handle = component_state.clone();
+    let on_remove_member = Callback::from(move |user_id_to_remove: u64| {
+        let room_id = state_handle.selected_room_id.unwrap();
+        let manage_action = ChatRoomManageUser {
+            user_id: user_id_to_remove,
+            action: ChatRoomManageUserAction::RemoveUser
+        };
+        
+        let state_handle = state_handle.clone();
+        wasm_bindgen_futures::spawn_local(async move {
+            match api_service::chat_manage_user(&token, room_id, manage_action).await {
+                Ok(()) => {
+                    let mut updated_state = state_handle.deref().clone();
+                    let index_to_remove = updated_state.selected_room_members.iter()
+                        .position(|member| member.id == user_id_to_remove);
+                    if let Some(idx) = index_to_remove {
+                        updated_state.selected_room_members.remove(idx);
+                        state_handle.set(updated_state)
+                    }
+                },
+                Err(e) => log!(format!("{:?}", e)),
+            }
+        });
+    });
 
     let state_handle = component_state.clone();
     let on_load_more_messages = {
@@ -150,18 +239,6 @@ pub fn chat_page() -> Html {
             });
         })
     };
-
-    let chat_room_preview_html: Vec<Html> = component_state.chat_room_list.iter()
-        .map(|room: &ChatRoom| html! {
-            <ChatRoomPreview chat={room.clone()} on_select={on_chat_room_select.clone()} />
-        })
-        .collect();
-
-    let chat_room_mesages_html: Vec<Html> = component_state.selected_room_messages.iter()
-        .map(|message: &common::ChatMessage| html! {
-            <ChatMessage message={message.clone()} />
-        })
-        .collect();
 
     let state_handle = component_state.clone();
     let input_on_submit: Callback<String> = {
@@ -207,6 +284,25 @@ pub fn chat_page() -> Html {
         })
     };
 
+    // Generate html
+    let chat_room_preview_html: Vec<Html> = component_state.chat_room_list.iter()
+        .map(|room: &ChatRoom| html! {
+            <ChatRoomPreview chat={room.clone()} on_select={on_chat_room_select.clone()} />
+        })
+        .collect();
+
+    let chat_room_mesages_html: Vec<Html> = component_state.selected_room_messages.iter()
+        .map(|message: &common::ChatMessage| html! {
+            <ChatMessage message={message.clone()} />
+        })
+        .collect();
+
+    let chat_room_members_html: Vec<Html> = component_state.selected_room_members.iter()
+        .map(|member| html! {
+            <UserDetailComponent data={member.clone()} on_select={on_remove_member.clone()} />
+        })
+        .collect();
+
     html! {
         <>
             <h>{ "Chat rooms" }</h>
@@ -232,8 +328,15 @@ pub fn chat_page() -> Html {
                     if chat_room_members_html.is_empty() {
                         <p>{ "No room selected" }</p>
                     } else {
-                        <p>{ "Room members" }</p>
-                        <ListView children={chat_room_members_html} />
+                        if let MemberPanelMode::ViewMembers = component_state.member_panel_mode {
+                            <p>{ "Room members" }</p>
+                            <Button label={ "Add Members" } on_click={to_add_members} />
+                            <ListView children={chat_room_members_html} />
+                        } else {
+                            <p>{ "Add members" }</p>
+                            <Button label={ "View Members" } on_click={to_view_members} />
+                            <UserSearch on_user_click={on_add_member} />
+                        }
                     }
                 </div>
             </div>

@@ -1,5 +1,14 @@
 use common::{
-    AccountPasswordChange, AccountRequest, ChatMessage, ChatRoom, ChatRoomManageUser, ChatRoomName, LoginResponse, LoginTokenInfo, UserInfo
+    AccountPasswordChange,
+    AccountRequest,
+    ChatMessage,
+    ChatRoom,
+    ChatRoomManageUser,
+    ChatRoomName,
+    LoginResponse,
+    LoginTokenInfo,
+    UserAssociationUpdate,
+    UserInfo
 };
 
 use gloo::console::log;
@@ -252,7 +261,7 @@ pub async fn chat_manage_user(token: &Uuid, room_id: u64, action: ChatRoomManage
     let endpoint = format!("{}/chat/{}/manage-user", BASE_URI, room_id);
 
     let response = reqwest::Client::new()
-        .put(endpoint)
+        .post(endpoint)
         .bearer_auth(token.to_string())
         .json(&action)
         .send()
@@ -305,3 +314,27 @@ pub async fn chat_send_message(token: &Uuid, message: ChatMessage) -> ApiResult<
         Err(err) => Err(err.into()),
     }
 }
+
+// User search
+
+pub async fn user_search(token: &Uuid, search_term: &str) -> ApiResult<Vec<UserInfo>> {
+    let endpoint_with_param = format!("{}/users?username={}", BASE_URI, search_term);
+
+    let response = reqwest::Client::new()
+        .get(endpoint_with_param)
+        .bearer_auth(token)
+        .send()
+        .await;
+
+    let response = match response {
+        Ok(res) if res.status() == StatusCode::OK => res,
+        Ok(res) => return Err(res.into()),
+        Err(err) => return Err(err.into())
+    };
+
+    match response.json::<Vec<UserInfo>>().await {
+        Ok(search_result) => Ok(search_result),
+        Err(err) => Err(err.into()),
+    }
+}
+

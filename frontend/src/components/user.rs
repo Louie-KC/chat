@@ -8,7 +8,7 @@ pub struct Props {
     pub on_select: Option<Callback<u64>>
 }
 
-#[function_component(UserWidget)]
+#[function_component(UserDetailComponent)]
 pub fn user_widget(props: &Props) -> Html {
     let on_select = {
         let user_id = props.data.id;
