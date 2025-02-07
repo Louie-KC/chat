@@ -495,15 +495,8 @@ async fn manage_room_members(
         return HttpResponse::Unauthorized().reason("Must be part of the room being managed").finish()
     }
 
-    // Find added/removed user id
-    let user_id = match db_service.user_get_by_username(&body.username).await {
-        Ok(user) => user.id,
-        Err(DatabaseServiceError::NoResult) => return HttpResponse::BadRequest().reason("Invalid username").finish(),
-        Err(_) => return HttpResponse::InternalServerError().reason("3").finish()
-    };
-
     let user_present = room_members.iter()
-        .find(|m| m.user_id == user_id)
+        .find(|m| m.user_id == body.user_id)
         .is_some();
 
     match body.action {
@@ -511,15 +504,15 @@ async fn manage_room_members(
             HttpResponse::Ok().finish()
         },
         common::ChatRoomManageUserAction::AddUser => {
-            match db_service.chat_room_add_user(&room_id, &user_id).await {
+            match db_service.chat_room_add_user(&room_id, &body.user_id).await {
                 Ok(()) => HttpResponse::Ok().finish(),
-                Err(_) => HttpResponse::InternalServerError().reason("4").finish()
+                Err(_) => HttpResponse::InternalServerError().reason("3").finish()
             }
         }
         common::ChatRoomManageUserAction::RemoveUser if user_present => {
-            match db_service.chat_room_remove_user(&room_id, &user_id).await {
+            match db_service.chat_room_remove_user(&room_id, &body.user_id).await {
                 Ok(()) => HttpResponse::Ok().finish(),
-                Err(_) => HttpResponse::InternalServerError().reason("5").finish(),
+                Err(_) => HttpResponse::InternalServerError().reason("4").finish(),
             }
         },
         common::ChatRoomManageUserAction::RemoveUser => {

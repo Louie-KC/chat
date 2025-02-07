@@ -242,13 +242,13 @@ List the usernames of members in the room specified by the `room_id` parameter. 
 ### POST /chat/{room_id}/manage-user
 Add or remove a user from a chat room specified by the `room_id` parameter.
 
-The logged in user must be a member of the room that the request specifies. I.O.W, the user is only authorised to make this request for rooms they are in.
+Requests to add/remove users from a chat room must be send by a member of said chat room.
 
 * Authentication: Bearer
 * Expected JSON payload:
 ```json
 {
-    "username": <username>,
+    "user_id": <user id>,
     "action": "AddUser" | "RemoveUser" 
 }
 ```

@@ -45,7 +45,7 @@ pub enum ChatRoomManageUserAction {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ChatRoomManageUser {
-    pub username: String,
+    pub user_id: u64,
     pub action: ChatRoomManageUserAction
 }
 
