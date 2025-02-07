@@ -32,6 +32,7 @@ User search & assocations (`/users`)
 
 * [`GET  /users`](#get-users)
 * [`POST /users`](#post-users)
+* [`GET  /users/associations`](#get-usersassociations)
 
 ### GET /health
 
@@ -359,6 +360,46 @@ Create or remove a one way association (friend, block) from the requesting user 
     ```json
     {
         "status": ["success" | "no change"]
+    }
+    ```
+    * HTTP 400 Bad Request: Invalid token format.
+    * HTTP 401 Unauthorized: The provided authentication token does not map to a user.
+    * HTTP 500 Internal Server Error: An error has occurred.
+
+### GET /users/associations
+Retrieve all associations with the requester user.
+
+- Friends: Other users which are accepted friends.
+- Incoming requests: Other users who have made a friend request.
+- Unaccepted requests: Outgoing friend requests that have not been accepted
+- Blocked: Other users that have been blocked.
+
+
+* Authentication: Bearer
+* Expected JSON payload: None
+* Possible responses:
+    * HTTP 200 OK:
+    ```json
+    {
+        "friends": [
+            {
+                "id": <user id>,
+                "username": <username>
+            },
+            {
+                ...
+            },
+            ...
+        ],
+        "incoming_requests": [
+            ... (as in friends)
+        ],
+        "unaccepted_requests": [
+            ... (as in friends)
+        ],
+        "blocked": [
+            ... (as in friends)
+        ]
     }
     ```
     * HTTP 400 Bad Request: Invalid token format.

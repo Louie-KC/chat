@@ -308,7 +308,10 @@ impl DatabaseService {
 
         match qr {
             Ok(r) if r.rows_affected() == 1 => Ok(()),
-            Ok(_)  => Err(DatabaseServiceError::NoResult),
+            Ok(e)  => {
+                // debug!("{:?}", e);
+                Err(DatabaseServiceError::NoResult)
+            },
             Err(e) => Err(e.into()),
         }
     }
@@ -495,4 +498,103 @@ impl DatabaseService {
             Err(e) => Err(e.into()),
         }
     }
+
+    /// Get a list of users that are accepted friends of `user_id`.
+    pub async fn user_association_get_friends(&self, user_id: &u64) -> DBResult<Vec<UserInfo>> {
+        let qr = sqlx::query_as!(
+            UserInfo,
+            "SELECT id, username
+            FROM User
+            WHERE id IN (
+                SELECT requester.other_user_id
+                FROM UserAssociation requester
+                INNER JOIN UserAssociation requestee
+                ON requester.other_user_id = requestee.user_id
+                WHERE requester.association = 'FRIEND'
+                AND requester.user_id = ?
+            )",
+            user_id)
+            .fetch_all(&self.conn_pool)
+            .await;
+
+        match qr {
+            Ok(friends) => Ok(friends),
+            Err(e) => Err(e.into()),
+        }
+    }
+
+    /// Get a list of users that have sent `user_id` a (currently unaccepted)
+    /// friend request.
+    pub async fn user_association_get_friend_requesters(&self, user_id: &u64) -> DBResult<Vec<UserInfo>> {
+        let qr = sqlx::query_as!(
+            UserInfo,
+            "SELECT id, username
+            FROM User
+            WHERE id IN (
+                SELECT requester.user_id
+                FROM UserAssociation requester
+                LEFT JOIN UserAssociation requestee
+                ON requester.user_id = requestee.other_user_id
+                WHERE requester.association = 'FRIEND'
+                AND requester.other_user_id = ?
+                AND requestee.association IS NULL
+            )",
+            user_id)
+            .fetch_all(&self.conn_pool)
+            .await;
+
+        match qr {
+            Ok(requesting_users) => Ok(requesting_users),
+            Err(e) => Err(e.into())
+        }
+    }
+
+    /// Get a list of users that have been sent a friend request by `user_id`, but
+    /// have not accepted.
+    pub async fn user_association_get_unaccepted_friends(&self, user_id: &u64) -> DBResult<Vec<UserInfo>> {
+        let qr = sqlx::query_as!(
+            UserInfo,
+            "SELECT id, username
+            FROM User
+            WHERE id IN (
+                SELECT requester.other_user_id
+                FROM UserAssociation requester
+                LEFT JOIN UserAssociation requestee
+                ON requester.other_user_id = requestee.user_id
+                WHERE requester.association = 'FRIEND'
+                AND requester.user_id = ?
+                AND requestee.association IS NULL
+            )",
+            user_id)
+            .fetch_all(&self.conn_pool)
+            .await;
+
+        match qr {
+            Ok(awaiting_responses) => Ok(awaiting_responses),
+            Err(e) => Err(e.into())
+        }
+    }
+
+    /// Get a list of users that have been blocked by `user_id`.
+    pub async fn user_association_get_blocked(&self, user_id: &u64) -> DBResult<Vec<UserInfo>> {
+        let qr = sqlx::query_as!(
+            UserInfo,
+            "SELECT id, username
+            FROM User
+            WHERE id IN (
+                SELECT other_user_id
+                FROM UserAssociation
+                WHERE user_id = ?
+                AND association = 'BLOCK'
+            )",
+            user_id)
+            .fetch_all(&self.conn_pool)
+            .await;
+
+        match qr {
+            Ok(blocked) => Ok(blocked),
+            Err(e) => Err(e.into()),
+        }
+    }
+
 }

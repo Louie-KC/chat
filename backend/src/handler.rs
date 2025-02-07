@@ -4,15 +4,7 @@ use const_format::formatcp;
 use serde_json::json;
 
 use common::{
-    AccountPasswordChange,
-    AccountRequest,
-    ChatMessage,
-    ChatRoomManageUser,
-    ChatRoomName,
-    LoginResponse,
-    LoginTokenInfo,
-    UserAssociationUpdate,
-    UserInfo
+    AccountPasswordChange, AccountRequest, ChatMessage, ChatRoomManageUser, ChatRoomName, LoginResponse, LoginTokenInfo, UserAssociationUpdate, UserAssociations, UserInfo
 };
 
 use actix_web::{
@@ -80,6 +72,7 @@ pub fn config(config: &mut ServiceConfig) -> () {
         // User interaction
         .service(user_search_global)
         .service(user_association)
+        .service(user_get_associations)
     );
 }
 
@@ -645,6 +638,46 @@ async fn user_association(
     }
 }
 
+#[get("/users/associations")]
+async fn user_get_associations(
+    db_service: Data<DatabaseService>,
+    bearer: BearerAuth
+) -> HttpResponse {
+    // Find requester user id
+    let user_id = match token_to_user_id(&db_service, bearer.token()).await {
+        Ok(id) => id,
+        Err(response) => return response,
+    };
+
+    let requester_friends = match db_service.user_association_get_friends(&user_id).await {
+        Ok(friends) => friends,
+        Err(_) => return HttpResponse::InternalServerError().reason("1").finish(),
+    };
+
+    let incoming_friend_reqs = match db_service.user_association_get_friend_requesters(&user_id).await {
+        Ok(incoming) => incoming,
+        Err(_) => return HttpResponse::InternalServerError().reason("2").finish(),
+    };
+
+    let outgoing_friend_reqs = match db_service.user_association_get_unaccepted_friends(&user_id).await {
+        Ok(outgoing) => outgoing,
+        Err(_) => return HttpResponse::InternalServerError().reason("3").finish(),
+    };
+
+    let blocked_by_requester = match db_service.user_association_get_blocked(&user_id).await {
+        Ok(blocked) => blocked,
+        Err(_) => return HttpResponse::InternalServerError().reason("4").finish(),
+    };
+
+    let response_body = UserAssociations {
+        friends: requester_friends,
+        incoming_requests: incoming_friend_reqs,
+        unaccepted_requests: outgoing_friend_reqs,
+        blocked: blocked_by_requester
+    };
+
+    HttpResponse::Ok().json(response_body)
+}
 
 // Util
 
