@@ -16,6 +16,7 @@ pub fn NavBar() -> Html {
                 <Link<Route> to={Route::AccountLogin}> {"Login"} </Link<Route>>
             } else {
                 <Link<Route> to={Route::Chats}> {"Chat"} </Link<Route>>
+                <Link<Route> to={Route::Associations}> {"Associations"} </Link<Route>>
                 <Link<Route> to={Route::AccountManage}> {"Manage Account"} </Link<Route>>
             }
         </nav>

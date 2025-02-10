@@ -77,7 +77,7 @@ pub struct UserAssociationUpdate {
     pub association_type: UserAssociationType
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, PartialEq, Clone, Debug)]
 pub struct UserAssociations {
     pub friends: Vec<UserInfo>,
     pub incoming_requests: Vec<UserInfo>,

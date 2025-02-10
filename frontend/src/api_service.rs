@@ -8,6 +8,7 @@ use common::{
     LoginResponse,
     LoginTokenInfo,
     UserAssociationUpdate,
+    UserAssociations,
     UserInfo
 };
 
@@ -338,3 +339,40 @@ pub async fn user_search(token: &Uuid, search_term: &str) -> ApiResult<Vec<UserI
     }
 }
 
+pub async fn user_associate(token: &Uuid, association: UserAssociationUpdate) -> ApiResult<()> {
+    let endpoint = format!("{}/users", BASE_URI);
+
+    let response = reqwest::Client::new()
+        .post(endpoint)
+        .bearer_auth(token)
+        .json(&association)
+        .send()
+        .await;
+
+    match response {
+        Ok(res) if res.status() == StatusCode::OK => Ok(()),
+        Ok(res) => Err(res.into()),
+        Err(err) => Err(err.into())
+    }
+}
+
+pub async fn user_get_associations(token: &Uuid) -> ApiResult<UserAssociations> {
+    let endpoint = format!("{}/users/associations", BASE_URI);
+
+    let response = reqwest::Client::new()
+        .get(endpoint)
+        .bearer_auth(token)
+        .send()
+        .await;
+
+    let response = match response {
+        Ok(res) if res.status() == StatusCode::OK => res,
+        Ok(res) => return Err(res.into()),
+        Err(res) => return Err(res.into())
+    };
+
+    match response.json::<UserAssociations>().await {
+        Ok(associations) => Ok(associations),
+        Err(err) => Err(err.into())
+    }
+}
