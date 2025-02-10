@@ -5,8 +5,8 @@ use yew::prelude::*;
 #[derive(Properties, PartialEq)]
 pub struct Props {
     pub name: String,
-    #[prop_or_default]
-    pub prefill: String,
+    #[prop_or(None)]
+    pub prefill: Option<String>,
     #[prop_or(false)]
     pub autofocus: bool,
     #[prop_or(false)]
