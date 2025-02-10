@@ -5,6 +5,8 @@ use yew::prelude::*;
 #[derive(Properties, PartialEq)]
 pub struct Props {
     pub name: String,
+    #[prop_or_default]
+    pub prefill: String,
     #[prop_or(false)]
     pub autofocus: bool,
     #[prop_or(false)]
@@ -31,6 +33,6 @@ pub fn input_field(props: &Props) -> Html {
     html! {
         <input type={input_type} autofocus={props.autofocus}
             name={props.name.clone()} placeholder={props.name.clone()}
-            onchange={internal_on_change} />
+            value={props.prefill.clone()} onchange={internal_on_change} />
     }
 }

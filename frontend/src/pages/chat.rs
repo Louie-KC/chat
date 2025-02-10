@@ -284,6 +284,19 @@ pub fn chat_page() -> Html {
         })
     };
 
+    let state_handle = component_state.clone();
+    let on_room_name_change = Callback::from(move |new_name: String| {
+        let state_handle = state_handle.clone();
+        let mut updated_state = state_handle.deref().clone();
+        let room_id = updated_state.selected_room_id.unwrap();
+        wasm_bindgen_futures::spawn_local(async move {
+            if let Ok(_) = api_service::chat_change_name(&token, room_id, &new_name).await {
+                updated_state.selected_room_name = new_name;
+                state_handle.set(updated_state);
+            }
+        });
+    });
+
     // Generate html
     let chat_room_preview_html: Vec<Html> = component_state.chat_room_list.iter()
         .map(|room: &ChatRoom| html! {
@@ -312,7 +325,8 @@ pub fn chat_page() -> Html {
                 </div>
                 <div class={classes!("chat_column", "middle")}>
                     if component_state.selected_room_id.is_some() {
-                        <p>{ component_state.selected_room_name.to_string() }</p>
+                        <InputField name="" prefill={component_state.selected_room_name.clone()}
+                            on_change={on_room_name_change.clone()} />
                         if component_state.selected_room_exhausted {
                             <p>{ "No more messages" }</p>
                         } else {
