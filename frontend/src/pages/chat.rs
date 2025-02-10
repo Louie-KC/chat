@@ -18,7 +18,9 @@ use crate::{
     },
     router::Route,
     store::Store,
-    widgets::{list_view::ListView, user_search::UserSearch},
+    widgets::{
+        list_view::ListView, new_room_form::NewRoomForm, user_search::UserSearch
+    },
 };
 
 const MSG_WINDOW_SIZE: u64 = 5;
@@ -28,6 +30,12 @@ enum MsgSendStatus {
     Idle,
     Sending,
     Failed,
+}
+
+#[derive(PartialEq, Clone)]
+enum MainPanelMode {
+    Messages,
+    NewRoom
 }
 
 #[derive(PartialEq, Clone)]
@@ -46,6 +54,7 @@ struct State {
     selected_room_exhausted: bool,
     selected_room_members: Vec<UserInfo>,
     sending_status: MsgSendStatus,
+    main_panel_mode: MainPanelMode,
     member_panel_mode: MemberPanelMode
 }
 
@@ -60,6 +69,7 @@ impl Default for State {
             selected_room_exhausted: false,
             selected_room_members: Vec::with_capacity(0),
             sending_status: MsgSendStatus::Idle,
+            main_panel_mode: MainPanelMode::Messages,
             member_panel_mode: MemberPanelMode::ViewMembers
         }
     }
@@ -102,6 +112,7 @@ pub fn chat_page() -> Html {
             updated_state.selected_room_name = room.name.clone();
             updated_state.selected_room_id = Some(chat_id);
             updated_state.selected_room_exhausted = false;
+            updated_state.main_panel_mode = MainPanelMode::Messages;
             wasm_bindgen_futures::spawn_local(async move {
                 // Messages
                 match api_service::chat_get_messages(&token, chat_id, 0, MSG_WINDOW_SIZE).await {
@@ -283,6 +294,24 @@ pub fn chat_page() -> Html {
             });
         })
     };
+    
+    let state_handle = component_state.clone();
+    let on_new_room_click = {
+        Callback::from(move |_: MouseEvent| {
+            let mut updated_state = state_handle.deref().clone();
+            updated_state.main_panel_mode = MainPanelMode::NewRoom;
+            state_handle.set(updated_state);
+        })
+    };
+
+    let state_handle = component_state.clone();
+    let on_new_room_submit = {
+        Callback::from(move |_: bool| {
+            let mut updated_state = state_handle.deref().clone();
+            updated_state.main_panel_mode = MainPanelMode::Messages;
+            state_handle.set(updated_state);
+        })
+    };
 
     let state_handle = component_state.clone();
     let on_room_name_change = Callback::from(move |new_name: String| {
@@ -321,21 +350,26 @@ pub fn chat_page() -> Html {
             <h>{ "Chat rooms" }</h>
             <div class={classes!("row")}>
                 <div class={classes!("chat_column", "side")}>
+                    <Button label={"Create room"} on_click={Some(on_new_room_click)} />
                     <ListView children={chat_room_preview_html} />
                 </div>
                 <div class={classes!("chat_column", "middle")}>
-                    if component_state.selected_room_id.is_some() {
-                        <InputField name="" prefill={component_state.selected_room_name.clone()}
-                            on_change={on_room_name_change.clone()} />
-                        if component_state.selected_room_exhausted {
-                            <p>{ "No more messages" }</p>
+                    if let MainPanelMode::Messages = component_state.main_panel_mode {
+                        if component_state.selected_room_id.is_some() {
+                            <InputField name="" prefill={component_state.selected_room_name.clone()}
+                                on_change={on_room_name_change.clone()} />
+                            if component_state.selected_room_exhausted {
+                                <p>{ "No more messages" }</p>
+                            } else {
+                                <Button label={ "Load more" } on_click={on_load_more_messages} />
+                            }
+                            <ListView children={chat_room_mesages_html} />
+                            <InputField name={""} on_change={input_on_submit} /> 
                         } else {
-                            <Button label={ "Load more" } on_click={on_load_more_messages} />
+                            <p>{ "No chat selected" }</p>
                         }
-                        <ListView children={chat_room_mesages_html} />
-                        <InputField name={""} on_change={input_on_submit} /> 
                     } else {
-                        <p>{ "No chat selected" }</p>
+                        <NewRoomForm notify={on_new_room_submit} />
                     }
                 </div>
                 <div class={classes!("chat_column", "side")}>
