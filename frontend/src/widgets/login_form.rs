@@ -2,10 +2,14 @@ use std::ops::Deref;
 
 use common::AccountRequest;
 use yew::prelude::*;
+use yew_router::prelude::Link;
 
-use crate::components::{
-    button::Button,
-    input_field::InputField
+use crate::{
+    components::{
+        button::Button,
+        input_field::InputField
+    },
+    router::Route
 };
 
 #[derive(Properties, PartialEq)]
@@ -50,11 +54,13 @@ pub fn login_form(props: &Props) -> Html {
 
     html! {
         <form onsubmit={on_submit} class={classes!("account_form")}>
+            <h1>{ "Login" }</h1>
             <InputField name="username" on_change={username_changed} />
             <br />
             <InputField name="password" password=true on_change={password_changed} />
             <br />
             <Button label="Login" />
+            <Link<Route> to={Route::AccountRegister}> {"No account?"} </Link<Route>>
         </form>
     }
 

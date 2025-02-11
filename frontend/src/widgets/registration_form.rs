@@ -1,8 +1,8 @@
 use std::ops::Deref;
 
 use common::AccountRequest;
-use gloo::console::log;
 use yew::prelude::*;
+use yew_router::prelude::Link;
 
 use crate::components::{
     button::Button,
@@ -76,6 +76,7 @@ pub fn registration_form(props: &Props) -> Html {
 
     html! {
         <form onsubmit={on_submit} class={classes!("account_form")}>
+            <h1>{ "Create an account" }</h1>
             <InputField name="username" on_change={username_changed} />
             <br />
             <InputField name="password" password=true on_change={password_changed} />
@@ -83,6 +84,7 @@ pub fn registration_form(props: &Props) -> Html {
             <InputField name="confirm password" password=true on_change={password_confirm_changed} />
             <br />
             <Button label="Register" />
+            <Link<Route> to={Route::AccountLogin}> {"Already have an account?"} </Link<Route>>
         </form>
     }
 }

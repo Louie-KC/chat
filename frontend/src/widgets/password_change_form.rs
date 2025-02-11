@@ -86,6 +86,7 @@ pub fn password_change_form(props: &Props) -> Html {
 
     html! {
         <form onsubmit={on_submit} class={classes!("account_form")}>
+            <h1>{ "Change password" }</h1>
             <InputField name="old password" password=true on_change={old_password_changed} />
             <br />
             <InputField name="new password" password=true on_change={new_password_changed} />
