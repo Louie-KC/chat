@@ -7,17 +7,19 @@ use yewdux::use_store;
 use crate::{
     api_service,
     components::{
+        button::Button,
         input_field::InputField,
         user::UserDetailComponent
     },
-    store::Store
+    store::Store,
+    widgets::list_view::ListView,
 };
 
 const MIN_SEARCH_LEN: usize = 2;
 
 #[derive(Properties, PartialEq, Clone)]
 pub struct Props {
-    pub on_user_click: Callback<u64>
+    pub buttons: Vec<(String, Callback<u64>)>
 }
 
 #[derive(PartialEq, Clone, Default)]
@@ -38,6 +40,8 @@ pub fn user_search(props: &Props) -> Html {
         let state_handle = state_handle.clone();
         let mut updated_state = state_handle.deref().clone();
         if text.len() < MIN_SEARCH_LEN {
+            updated_state.search_result.clear();
+            state_handle.set(updated_state);
             return
         }
         wasm_bindgen_futures::spawn_local(async move {
@@ -51,27 +55,33 @@ pub fn user_search(props: &Props) -> Html {
         });
     });
 
-    let props_handle = props.clone();
-    let on_user_clicked = {
-        Callback::from(move |selected_user_id: u64| {
-            props_handle.on_user_click.emit(selected_user_id)
+    let list_html: Vec<Html> = component_state.search_result.iter()
+        .map(|user| {
+            let user_id = user.id;
+            html! {
+                <div class={classes!("user_button_row")}>
+                    <UserDetailComponent data={user.clone()} />
+                    {
+                        for props.buttons.iter()
+                            .map(|data| data.clone())
+                            .map(|(label, callback)| {
+                                let on_click = Callback::from(move |_: MouseEvent| {
+                                    callback.emit(user_id)
+                                });
+                                html! {
+                                    <Button label={label.clone()} on_click={Some(on_click)} />
+                                }
+                            })
+                    }
+                </div>
+            }
         })
-    };
+        .collect();
     
     html! {
         <>
-        <InputField name={"username"} on_change={search_text_changed} />
-        <ul>
-            {
-            component_state.search_result.iter()
-                .map(|user| {
-                    html! {
-                        <UserDetailComponent data={user.clone()} on_select={on_user_clicked.clone()} />
-                    }
-                })
-                .collect::<Vec<Html>>()
-            }
-            </ul>
+            <InputField name={"username"} on_change={search_text_changed} />
+            <ListView children={list_html} />
         </>
     }
 }

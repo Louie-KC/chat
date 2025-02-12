@@ -1,16 +1,19 @@
 use std::ops::Deref;
 
 use common::{UserAssociationUpdate, UserAssociations};
-use gloo::console::log;
 use yew::prelude::*;
 use yew_router::prelude::Redirect;
 use yewdux::use_store;
 
 use crate::{
     api_service,
-    components::user::UserDetailComponent,
+    components::{
+        button::Button,
+        user::UserDetailComponent
+    },
     router::Route,
-    store::Store, widgets::user_search::UserSearch
+    store::Store,
+    widgets::user_search::UserSearch
 };
 
 #[derive(PartialEq, Clone)]
@@ -51,11 +54,47 @@ pub fn associations_page() -> Html {
             state_handle.set(updated_state);
         }
     });
+
+    let state_handle = component_state.clone();
+    let on_add_friend_association = Callback::from(move |user_id: u64| {
+        let friend_association = UserAssociationUpdate {
+            other_user_id: user_id,
+            association_type: common::UserAssociationType::Friend
+        };
+        let state_handle = state_handle.clone();
+        wasm_bindgen_futures::spawn_local(async move {
+            if let Ok(_) = api_service::user_associate(&token, friend_association).await {
+                if let Ok(associations) = api_service::user_get_associations(&token).await {
+                    let mut updated_state = state_handle.deref().clone();
+                    updated_state.associations = associations;
+                    state_handle.set(updated_state);
+                }
+            }
+        });
+    });
+
+    let state_handle = component_state.clone();
+    let on_block_association = Callback::from(move |user_id: u64| {
+        let block_association = UserAssociationUpdate {
+            other_user_id: user_id,
+            association_type: common::UserAssociationType::Block
+        };
+        let state_handle = state_handle.clone();
+        wasm_bindgen_futures::spawn_local(async move {
+            if let Ok(_) = api_service::user_associate(&token, block_association).await {
+                if let Ok(associations) = api_service::user_get_associations(&token).await {
+                    let mut updated_state = state_handle.deref().clone();
+                    updated_state.associations = associations;
+                    state_handle.set(updated_state);
+                }
+            }
+        });
+    });
     
     let state_handle = component_state.clone();
-    let on_remove_association = Callback::from(move |friend_user_id: u64| {
+    let on_remove_association = Callback::from(move |user_id: u64| {
         let delete_association = UserAssociationUpdate {
-            other_user_id: friend_user_id,
+            other_user_id: user_id,
             association_type: common::UserAssociationType::Remove
         };
         let state_handle = state_handle.clone();
@@ -70,7 +109,10 @@ pub fn associations_page() -> Html {
         });
     });
 
-
+    let search_list_buttons = vec![
+        ("Add friend".to_string(), on_add_friend_association.clone()),
+        ("Block".to_string(), on_block_association.clone())
+    ];
 
     html! {
         <>
@@ -82,8 +124,25 @@ pub fn associations_page() -> Html {
                     <ul>
                     {
                         component_state.associations.incoming_requests.iter()
-                            .map(|user| html! {
-                                <UserDetailComponent data={user.clone()} />
+                            .map(|user| {
+                                let user_id = user.id;
+                                let accept_callback = on_add_friend_association.clone();
+                                let block_callback = on_block_association.clone();
+                                html! {
+                                    <div class={classes!("user_button_row")}>
+                                        <UserDetailComponent data={user.clone()} />
+                                        <Button label={"Accept"} on_click={
+                                            Callback::from(move |_: MouseEvent| {
+                                                accept_callback.emit(user_id)
+                                            })
+                                        } />
+                                        <Button label={"Block"} on_click={
+                                            Callback::from(move |_: MouseEvent| {
+                                                block_callback.emit(user_id)
+                                            })
+                                        } />
+                                    </div>
+                                }
                             })
                             .collect::<Html>()
                     }
@@ -91,16 +150,32 @@ pub fn associations_page() -> Html {
                 }
             </div>
             <div>
-                <h>{ "Friends: Click to remove" }</h>
+                <h>{ "Friends" }</h>
                 if component_state.associations.friends.is_empty() {
                     <p>{ "None" }</p>
                 } else {
                     <ul>
                     {
                         component_state.associations.friends.iter()
-                        .map(|user| html! {
-                            <UserDetailComponent data={user.clone()}
-                            on_select={Some(on_remove_association.clone())} />
+                        .map(|user| {
+                            let user_id = user.id;
+                            let remove_callback = on_remove_association.clone();
+                            let block_callback = on_block_association.clone();
+                            html! {
+                                <div class={classes!("user_button_row")}>
+                                    <UserDetailComponent data={user.clone()} />
+                                    <Button label={"Remove"} on_click={
+                                        Callback::from(move |_: MouseEvent| {
+                                            remove_callback.emit(user_id)
+                                        })
+                                    } />
+                                    <Button label={"Block"} on_click={
+                                        Callback::from(move |_: MouseEvent| {
+                                            block_callback.emit(user_id)
+                                        })
+                                    } />
+                                </div>
+                            }
                         })
                         .collect::<Html>()
                     }
@@ -108,16 +183,26 @@ pub fn associations_page() -> Html {
                 }
                 </div>
                 <div>
-                <h>{ "Awaiting Response: Click to remove" }</h>
+                <h>{ "Awaiting Response" }</h>
                 if component_state.associations.unaccepted_requests.is_empty() {
                     <p>{ "None" }</p>
                 } else {
                     <ul>
                     {
                         component_state.associations.unaccepted_requests.iter()
-                        .map(|user| html! {
-                            <UserDetailComponent data={user.clone()}
-                            on_select={Some(on_remove_association.clone())} />
+                        .map(|user| {
+                            let user_id = user.id;
+                            let remove_callback = on_remove_association.clone();
+                            html! {
+                                <div class={classes!("user_button_row")}>
+                                    <UserDetailComponent data={user.clone()} />
+                                    <Button label={"Remove"} on_click={
+                                        Callback::from(move |_: MouseEvent| {
+                                            remove_callback.emit(user_id)
+                                        })
+                                    } />
+                                </div>
+                            }
                         })
                         .collect::<Html>()
                     }
@@ -125,16 +210,26 @@ pub fn associations_page() -> Html {
                 }
                 </div>
                 <div>
-                <h>{ "Blocked by you: Click to remove" }</h>
+                <h>{ "Blocked by you" }</h>
                 if component_state.associations.blocked.is_empty() {
                     <p>{ "None" }</p>
                 } else {
                     <ul>
                     {
                         component_state.associations.blocked.iter()
-                            .map(|user| html! {
-                                <UserDetailComponent data={user.clone()}
-                                    on_select={Some(on_remove_association.clone())} />
+                            .map(|user| {
+                                let user_id = user.id;
+                                let remove_callback = on_remove_association.clone();
+                                html! {
+                                    <div class={classes!("user_button_row")}>
+                                        <UserDetailComponent data={user.clone()} />
+                                        <Button label={"Remove"} on_click={
+                                            Callback::from(move |_: MouseEvent| {
+                                                remove_callback.emit(user_id)
+                                            })
+                                        } />
+                                    </div>
+                                }
                             })
                             .collect::<Html>()
                     }
@@ -144,9 +239,7 @@ pub fn associations_page() -> Html {
             <hr />
             <div>
                 <h>{ "Search users" }</h>
-                <UserSearch on_user_click={Callback::from(move |user_id: u64| {
-                    log!(format!("user id: {}", user_id))
-                })}/>
+                <UserSearch buttons={search_list_buttons} />
             </div>
         </>
     }

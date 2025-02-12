@@ -340,8 +340,19 @@ pub fn chat_page() -> Html {
         .collect();
 
     let chat_room_members_html: Vec<Html> = component_state.selected_room_members.iter()
-        .map(|member| html! {
-            <UserDetailComponent data={member.clone()} on_select={on_remove_member.clone()} />
+        .map(|member| {
+            let user_id = member.id;
+            let remove_member_callback = on_remove_member.clone();
+            html! {
+                <div class={classes!("user_button_row")}>
+                    <UserDetailComponent data={member.clone()} />
+                    <Button label={"Remove"} on_click={
+                        Callback::from(move |_: MouseEvent| {
+                            remove_member_callback.emit(user_id)
+                        })
+                    } />
+                </div>
+            }
         })
         .collect();
 
@@ -383,7 +394,9 @@ pub fn chat_page() -> Html {
                         } else {
                             <p>{ "Add members" }</p>
                             <Button label={ "View Members" } on_click={to_view_members} />
-                            <UserSearch on_user_click={on_add_member} />
+                            <UserSearch buttons={vec![
+                                ("Add".to_string(), on_add_member.clone())
+                            ]} />
                         }
                     }
                 </div>

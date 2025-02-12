@@ -171,3 +171,9 @@ ul {
     border-bottom: 1px solid black;
     margin: -1px;  /* Overlap borders to remove double borders */
 }
+
+/* User listing w/ buttons horizontally aligned */
+.user_button_row {
+    display: flex;
+    justify-content: space-around;
+}
