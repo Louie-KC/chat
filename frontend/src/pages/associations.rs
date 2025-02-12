@@ -1,6 +1,7 @@
 use std::ops::Deref;
 
 use common::{UserAssociationUpdate, UserAssociations};
+use gloo::console::log;
 use yew::prelude::*;
 use yew_router::prelude::Redirect;
 use yewdux::use_store;
@@ -9,7 +10,7 @@ use crate::{
     api_service,
     components::user::UserDetailComponent,
     router::Route,
-    store::Store
+    store::Store, widgets::user_search::UserSearch
 };
 
 #[derive(PartialEq, Clone)]
@@ -91,42 +92,61 @@ pub fn associations_page() -> Html {
             </div>
             <div>
                 <h>{ "Friends: Click to remove" }</h>
-                <ul>
-                {
-                    component_state.associations.friends.iter()
-                    .map(|user| html! {
-                        <UserDetailComponent data={user.clone()}
-                            on_select={Some(on_remove_association.clone())} />
-                    })
-                    .collect::<Html>()
-                }
-                </ul>
-            </div>
-            <div>
-                <h>{ "Awaiting Response: Click to remove" }</h>
-                <ul>
-                {
-                    component_state.associations.unaccepted_requests.iter()
-                    .map(|user| html! {
-                        <UserDetailComponent data={user.clone()}
-                            on_select={Some(on_remove_association.clone())} />
-                    })
-                    .collect::<Html>()
-                }
-                </ul>
-            </div>
-            <div>
-                <h>{ "Blocked by you: Click to remove" }</h>
-                <ul>
-                {
-                    component_state.associations.blocked.iter()
+                if component_state.associations.friends.is_empty() {
+                    <p>{ "None" }</p>
+                } else {
+                    <ul>
+                    {
+                        component_state.associations.friends.iter()
                         .map(|user| html! {
                             <UserDetailComponent data={user.clone()}
-                                on_select={Some(on_remove_association.clone())} />
+                            on_select={Some(on_remove_association.clone())} />
                         })
                         .collect::<Html>()
+                    }
+                    </ul>
                 }
-                </ul>
+                </div>
+                <div>
+                <h>{ "Awaiting Response: Click to remove" }</h>
+                if component_state.associations.unaccepted_requests.is_empty() {
+                    <p>{ "None" }</p>
+                } else {
+                    <ul>
+                    {
+                        component_state.associations.unaccepted_requests.iter()
+                        .map(|user| html! {
+                            <UserDetailComponent data={user.clone()}
+                            on_select={Some(on_remove_association.clone())} />
+                        })
+                        .collect::<Html>()
+                    }
+                    </ul>
+                }
+                </div>
+                <div>
+                <h>{ "Blocked by you: Click to remove" }</h>
+                if component_state.associations.blocked.is_empty() {
+                    <p>{ "None" }</p>
+                } else {
+                    <ul>
+                    {
+                        component_state.associations.blocked.iter()
+                            .map(|user| html! {
+                                <UserDetailComponent data={user.clone()}
+                                    on_select={Some(on_remove_association.clone())} />
+                            })
+                            .collect::<Html>()
+                    }
+                    </ul>
+                }
+            </div>
+            <hr />
+            <div>
+                <h>{ "Search users" }</h>
+                <UserSearch on_user_click={Callback::from(move |user_id: u64| {
+                    log!(format!("user id: {}", user_id))
+                })}/>
             </div>
         </>
     }
