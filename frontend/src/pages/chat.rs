@@ -17,7 +17,10 @@ use crate::{
         user::UserDetailComponent
     },
     router::Route,
-    store::Store,
+    store::{
+        Store,
+        StoreDispatchExt
+    },
     widgets::{
         list_view::ListView, new_room_form::NewRoomForm, user_search::UserSearch
     },
@@ -78,7 +81,7 @@ impl Default for State {
 #[function_component(ChatPage)]
 pub fn chat_page() -> Html {
     // Global state
-    let (store, _) = use_store::<Store>();
+    let (store, dispatch) = use_store::<Store>();
 
     // Redirect to Home is not logged in
     if store.user.is_none() {
@@ -326,6 +329,18 @@ pub fn chat_page() -> Html {
         });
     });
 
+    // Set/update cached data
+    component_state.selected_room_members.iter()
+        .for_each(|member| {
+            dispatch.id_to_name_set_reduce(member.id, member.username.clone());
+        });
+    
+    if let Some(room_id) = component_state.selected_room_id {
+        if let Some(msg) = component_state.selected_room_messages.last() {
+            dispatch.room_preview_msg_set_reduce(room_id, msg.body.clone());
+        }
+    }
+
     // Generate html
     let chat_room_preview_html: Vec<Html> = component_state.chat_room_list.iter()
         .map(|room: &ChatRoom| html! {
@@ -334,9 +349,7 @@ pub fn chat_page() -> Html {
         .collect();
 
     let chat_room_mesages_html: Vec<Html> = component_state.selected_room_messages.iter()
-        .map(|message: &common::ChatMessage| html! {
-            <ChatMessage message={message.clone()} />
-        })
+        .map(|message: &common::ChatMessage| html! { <ChatMessage message={message.clone()} /> })
         .collect();
 
     let chat_room_members_html: Vec<Html> = component_state.selected_room_members.iter()
